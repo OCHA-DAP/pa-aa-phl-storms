@@ -1,9 +1,16 @@
 # OCHA trigger thresholds
 
-This notebook is for determining trigger thresholds for 
+This notebook is for determining trigger thresholds for
 the OCHA Philippines trigger
 
 ```python
+%load_ext jupyter_black
+```
+
+```python
+from pathlib import Path
+import os
+
 import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -11,15 +18,19 @@ import numpy as np
 from scipy.stats import genextreme as gev
 from scipy.interpolate import interp1d
 
+
+MAIN_DIR = Path(os.environ["AA_DATA_DIR"]) / "public/exploration/phl"
+INPUT_DIR = MAIN_DIR / "data_from_repo"
+
 rng = np.random.default_rng(12345)
 ```
 
 ```python
 # The regions of interest and their pcodes
 ROI = {
-    "5": "PH050000000", 
-    "8": "PH080000000", 
-    "13": "PH160000000", 
+    "5": "PH050000000",
+    "8": "PH080000000",
+    "13": "PH160000000",
 }
 ```
 
@@ -27,8 +38,8 @@ ROI = {
 
 ```python
 # Read in the typhoon info
-filename = "../../IBF-Typhoon-model/data/loos_table_ibtrcs.csv"
-df_typhoon = pd.read_csv(filename, index_col=0)
+filename = "loos_table_ibtrcs.csv"
+df_typhoon = pd.read_csv(INPUT_DIR / filename, index_col=0)
 df_typhoon["year"] = df_typhoon["typhoon"].apply(lambda x: int(x[:4]))
 # Drop 2022 because it will mess up the RP
 df_typhoon = df_typhoon.loc[df_typhoon["year"] != 2022]
@@ -44,7 +55,7 @@ typhoon_year_list
 
 ```python
 # Read in the geo info
-filename_geo = "../../IBF-Typhoon-model/data/gis_data/phl_admin3_simpl.geojson"
+filename_geo = INPUT_DIR / "data-raw/phl_admin3_simpl.geojson"
 gdf = gpd.read_file(filename_geo)
 gdf
 ```
@@ -53,21 +64,26 @@ gdf
 
 ```python
 # Merge them
-df_comb = (pd.merge(df_typhoon, gdf[["adm3_pcode", "adm1_pcode"]], 
-              left_on="Mun_Code", right_on="adm3_pcode", how="left")
-      .drop(columns=["adm3_pcode"])
-     )
+df_comb = pd.merge(
+    df_typhoon,
+    gdf[["adm3_pcode", "adm1_pcode"]],
+    left_on="Mun_Code",
+    right_on="adm3_pcode",
+    how="left",
+).drop(columns=["adm3_pcode"])
 df_comb
 ```
 
 ```python
 # Group by admin1 and typhoon, and sum, then take max of each year
-df_max = (df_comb.groupby(['adm1_pcode', 'typhoon'])
-      .agg({'No_Totally_DMG_BLD': sum,'year': 'first'})
-     .groupby(['adm1_pcode', 'year']).max()
-     .rename(columns={'No_Totally_DMG_BLD': 'max_damage_event'})
-     .reset_index()
-             )
+df_max = (
+    df_comb.groupby(["adm1_pcode", "typhoon"])
+    .agg({"No_Totally_DMG_BLD": sum, "year": "first"})
+    .groupby(["adm1_pcode", "year"])
+    .max()
+    .rename(columns={"No_Totally_DMG_BLD": "max_damage_event"})
+    .reset_index()
+)
 df_max
 ```
 
@@ -83,17 +99,17 @@ df_max_roi_input = {
 df_max_roi = {}
 for key, value in df_max_roi_input.items():
 
-    df_max_roi[key] = (df_comb.loc[df_comb['adm1_pcode'].isin([ROI[v] for v in value])]
-              .groupby('typhoon')
-              .agg({'No_Totally_DMG_BLD': sum,'year': 'first'})
-              .groupby(['year']).max()
-              .rename(columns={'No_Totally_DMG_BLD': 'max_damage_event'})
-              .reset_index()
-             )
+    df_max_roi[key] = (
+        df_comb.loc[df_comb["adm1_pcode"].isin([ROI[v] for v in value])]
+        .groupby("typhoon")
+        .agg({"No_Totally_DMG_BLD": sum, "year": "first"})
+        .groupby(["year"])
+        .max()
+        .rename(columns={"No_Totally_DMG_BLD": "max_damage_event"})
+        .reset_index()
+    )
 
 df_max_roi
-
-
 ```
 
 ## Get the return periods
@@ -157,7 +173,6 @@ def get_rp_empirical(df_rp: pd.DataFrame, rp_var: str):
     return interp1d(df_rp["rp"], df_rp[rp_var])
 
 
-
 def get_rp_df(
     df: pd.DataFrame,
     rp_var: str,
@@ -205,50 +220,66 @@ def get_rp_df(
     if round_rp:
         df_rps["rp"] = np.round(df_rps["rp"])
     return df_rps
-
 ```
 
 ```python
-def add_rps_to_df(df, df_rp, region_key, years=None, method="analytical", show_plots=False):
+def add_rps_to_df(
+    df, df_rp, region_key, years=None, method="analytical", show_plots=False
+):
     print(f"Running for region {region_key}...")
     if years is None:
-        years = [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 2, 3, 3.5,  4, 4.5, 5, 5.5]
+        years = [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 2, 3, 3.5, 4, 4.5, 5, 5.5]
     df = df.copy()
     if len(df) < nyears:
         missing_years = set(typhoon_year_list) - set(df.year)
         print(f"Warning: need to fill in missing years {missing_years}")
         for year in missing_years:
-            df = df.append({"year": year,
-                       "max_damage_event": 0}, ignore_index=True)
+            df = df.append(
+                {"year": year, "max_damage_event": 0}, ignore_index=True
+            )
     df = df.set_index(df.year)
-    df_rp_tmp = (get_rp_df(df, "max_damage_event", years=years, extend_factor=5,
-                          method=method, show_plots=show_plots)
-                 .reset_index()
-                 .rename(columns={"rp": "max_damage", "index": "rp"})
-                )
+    df_rp_tmp = (
+        get_rp_df(
+            df,
+            "max_damage_event",
+            years=years,
+            extend_factor=5,
+            method=method,
+            show_plots=show_plots,
+        )
+        .reset_index()
+        .rename(columns={"rp": "max_damage", "index": "rp"})
+    )
     df_rp_tmp["region"] = region_key
     # Now bootstrap resample
-    #df_results = bootstrap_resample(df, years, method)
+    # df_results = bootstrap_resample(df, years, method)
     # Add results to final RP DF
     df_rp = pd.concat([df_rp, df_rp_tmp], ignore_index=True)
     print("...done")
     return df_rp
 
+
 def bootstrap_resample(df, years, method, n_bootstrap=100):
     df_results = pd.DataFrame()
     for i in range(n_bootstrap):
-        df_rs = df.sample(frac=1, replace=True, 
-                            random_state=rng.bit_generator)
+        df_rs = df.sample(frac=1, replace=True, random_state=rng.bit_generator)
         try:
-            df_rp_tmp = (get_rp_df(df_rs, "max_damage_event", years=years, extend_factor=5,
-                          method=method, show_plots=False)
-                 .reset_index()
-                 .rename(columns={"rp": "max_damage", "index": "rp"})
+            df_rp_tmp = (
+                get_rp_df(
+                    df_rs,
+                    "max_damage_event",
+                    years=years,
+                    extend_factor=5,
+                    method=method,
+                    show_plots=False,
                 )
+                .reset_index()
+                .rename(columns={"rp": "max_damage", "index": "rp"})
+            )
             df_results = df_results.append(df_rp_tmp, ignore_index=True)
         except ValueError:
             continue
-    df_results = df_results.dropna().groupby("rp").quantile([0.05, .95])
+    df_results = df_results.dropna().groupby("rp").quantile([0.05, 0.95])
     print(df_results)
     return df_results
 ```
@@ -259,7 +290,9 @@ df_rp = pd.DataFrame()
 
 # Only do for regions 5, 8, and 13
 for region_key, region_value in ROI.items():
-    df_rp = add_rps_to_df(df_max.loc[df_max["adm1_pcode"] == region_value], df_rp, region_key)
+    df_rp = add_rps_to_df(
+        df_max.loc[df_max["adm1_pcode"] == region_value], df_rp, region_key
+    )
 
 # Then for all 3 regions
 for region_key, df_region in df_max_roi.items():
@@ -267,13 +300,8 @@ for region_key, df_region in df_max_roi.items():
 
 
 df_rp
-
 ```
 
 ```python
 df_rp.to_csv("rp_damage_per_region.csv", index=False)
-```
-
-```python
-
 ```

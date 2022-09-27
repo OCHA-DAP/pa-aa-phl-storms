@@ -18,7 +18,7 @@ from scipy.stats import genextreme as gev
 import matplotlib.pyplot as plt
 
 MAIN_DIR = (
-    Path(os.environ["AA_DATA_DIR"]) / "public/exploration/phl/return_periods"
+    Path(os.environ["AA_DATA_DIR"]) / "public/exploration/phl/data_from_repo"
 )
 IMPACT_FILENAME = "impact.csv"
 ```
