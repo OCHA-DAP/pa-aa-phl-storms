@@ -134,3 +134,7 @@ dmypy.json
 
 # PyCharm
 .idea/
+
+# Notebooks
+*.ipynb
+.Rproj.user
