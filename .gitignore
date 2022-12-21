@@ -137,4 +137,11 @@ dmypy.json
 
 # Notebooks
 *.ipynb
+
+# R project
 .Rproj.user
+
+# Outputs for trigger reports
+*.png
+*.html
+*.knit.md

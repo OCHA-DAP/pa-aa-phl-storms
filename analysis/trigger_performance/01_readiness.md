@@ -15,48 +15,131 @@ import numpy as np
 import pandas as pd
 ```
 
-## Reading in the readiness data
-
 ```python
+rng = np.random.default_rng(12345)
+
 trigger_dir = (
     Path(os.environ["AA_DATA_DIR"])
     / "public/exploration/phl/trigger_performance"
 )
-trigger_filename = trigger_dir / "Readiness trigger performance.xlsx"
 ```
 
+## Reading in the readiness data
+
 ```python
-df = pd.read_excel(trigger_filename)
+trigger_filename = trigger_dir / "Readiness trigger performance.xlsx"
+df_readiness = pd.read_excel(trigger_filename)
 ```
 
 ```python
 # Convert scenarios to strings
 for cname in ["Activation scenario", "Readiness scenario"]:
-    df[cname] = df[cname].fillna(0).astype(int).astype(str)
+    df_readiness[cname] = df_readiness[cname].fillna(0).astype(int).astype(str)
 # Make sure Y/N is capitalized
 for cname in ["Should have activated", "Readiness reached"]:
-    df[cname] = df[cname].str.upper()
+    df_readiness[cname] = df_readiness[cname].str.upper()
 ```
 
 ```python
 # fill in confusion matrix
-df["Confusion matrix"] = "TN"
-df.loc[
-    (df["Should have activated"] == "Y") & (df["Readiness reached"] == "N"),
+df_readiness["Confusion matrix"] = "TN"
+df_readiness.loc[
+    (df_readiness["Should have activated"] == "Y")
+    & (df_readiness["Readiness reached"] == "N"),
     "Confusion matrix",
 ] = "FN"
-df.loc[
-    (df["Should have activated"] == "Y")
-    & (df["Readiness reached"] == "Y")
-    & (df["Activation scenario"] == df["Readiness scenario"]),
+df_readiness.loc[
+    (df_readiness["Should have activated"] == "Y")
+    & (df_readiness["Readiness reached"] == "Y")
+    & (
+        df_readiness["Activation scenario"]
+        == df_readiness["Readiness scenario"]
+    ),
     "Confusion matrix",
 ] = "TP"
 # Dataset has no FPs so skipping those
-df
 ```
 
 ```python
-important_columns = "Confusion matrix"
+# Rename confusion matrix column
+df_readiness = df_readiness[
+    ["International name", "Year", "Confusion matrix", "Should have activated"]
+].rename(
+    columns={
+        "International name": "typhoon",
+        "Year": "year",
+        "Confusion matrix": "readiness",
+    }
+)
+# Capitlize typhoon names
+df_readiness["typhoon"] = (
+    df_readiness["typhoon"].str.upper().str.strip().str.replace(" ", "-")
+)
+
+df_readiness
+```
+
+## Activation trigger
+
+```python
+model_results_dir = trigger_dir / "model_run_results"
+results = pd.DataFrame()
+for filename in model_results_dir.glob("*CERF_TRIGGER_LEVEL.csv"):
+    typhoon = str(filename.name).split("_")[0]
+    results = pd.concat([results, pd.read_csv(filename)], ignore_index=True)
+results
+```
+
+```python
+# Check if it triggered
+results["Activation reached"] = (
+    (results["80k"] >= 0.5)
+    | (results["50k"] >= 0.6)
+    | (results["30k"] >= 0.7)
+    | (results["10k"] >= 0.8)
+    | (results["5k"] >= 0.95)
+)
+results
+```
+
+```python
+# Join with readinessas
+df_activation = pd.merge(
+    left=df_readiness.rename(columns={"International name": "typhoon"}),
+    right=results[["Typhoon_name", "Activation reached"]].rename(
+        columns={"Typhoon_name": "typhoon"}
+    ),
+    how="left",
+    on="typhoon",
+)
+
+# count activations
+df_activation.loc[
+    (df_activation["Should have activated"] == "Y")
+    & df_activation["Activation reached"],
+    "activation",
+] = "TP"
+
+df_activation.loc[
+    (df_activation["Should have activated"] == "Y")
+    & (df_activation["Activation reached"] == False),
+    "activation",
+] = "FN"
+
+# Here assuming that there are no false positives -- pretty safe assumption for now
+# (but I will go back and run on more historical typhoons)
+df_activation.loc[
+    (df_activation["Should have activated"] == "N")
+    & (
+        (df_activation["Activation reached"] == False)
+        # Remove this after running on more
+        | (df_activation["Activation reached"].isna())
+    ),
+    "activation",
+] = "TN"
+
+
+df_activation
 ```
 
 ## Base metrics
@@ -119,14 +202,13 @@ def calc_df_base(df):
     )
 
 
-df_base = calc_df_base(df[[important_columns]])
+df_base = calc_df_base(df)
 df_base
 ```
 
-# Bootstrap resample
+## Bootstrap resample
 
 ```python
-rng = np.random.default_rng(12345)
 n_bootstrap = 1_000  # 10,000 takes about ...
 
 # Copied from Niger
@@ -167,11 +249,11 @@ def get_df_bootstrap(df, n_bootstrap=1_000):
     return df_all_bootstrap
 
 
-df_all_bootstrap = get_df_bootstrap(df[["Confusion matrix"]], n_bootstrap)
+df_all_bootstrap = get_df_bootstrap(df, n_bootstrap)
 df_all_bootstrap
 ```
 
-# Confidence intervals
+## Confidence intervals
 
 Below we will use the rule of three since we don't have any FNs.
 
@@ -184,10 +266,6 @@ is the sample size.
 
 So we need to compute any metrics that are undefined due to
 missing FN by hand.
-
-```python
-df_base.loc[df_base["metric"] == "nTP", "value"].values[0]
-```
 
 ```python
 def rate(CI, n):
