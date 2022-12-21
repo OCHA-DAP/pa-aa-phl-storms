@@ -1,5 +1,6 @@
 ---
 title: '<img src="https://drive.google.com/uc?id=118y5T73-iSUZoAMtoJGddxq9QzD_GDKX" style="height:40px;float:left;margin:10px" /><img src="https://drive.google.com/uc?id=1fHQUzF3ZjaoHj9KQ33-94dK_X1hcmjzW" style="height:50px;float:left;margin:10px" />'
+
 pagetitle: 'AA Trigger Report'
 output:
   html_document:
@@ -30,16 +31,13 @@ editor_options:
 </style>
 
 ```{r README, echo = FALSE, message = FALSE, warning = FALSE}
-### NOTE: The template is set up for two 3-timepoint predictive triggers and a 1-timepoint observational trigger
 ### NOTE: Performance metrics and their CIs should have been generated separately before the trigger report can be produced.
 
 ### Create a trigger_report folder under DATA_DIR > /private/exploration/{country_pcode3/trigger_performance}
-### Copy the dummy_learning_table_for_template.csv file to the trigger_report folder on DATA_DIR; remove 'dummy" and "for_template" from filename; add the 3-letter pcode for the country at the very beginning of the filename (eg: ner_perf_metrics_table.csv)
 ### Create a "plots" folder sister to the RMD file in the country's `analyses` folder
 ### Update the "hard-coded-values" code chunk below
-### If there are fewer or more than 3 triggers and/or fewer or more than 2 packages: Adjust the number of triggers and/or Packages throughout the Rmd (review the snapshot table and activation table carefully.)
+### If there are fewer or more than 3 triggers: Adjust the number of triggers and/or Packages throughout the Rmd (review the snapshot table and activation table carefully.)
 ### Review, adjust or remove the country-specific code chunk
-### Remove the Annex if no trigger has more than 1 activation timepoint or adjust the Annex as needed
 ### Knit
 ```
 
@@ -50,50 +48,25 @@ shock <- "Typhoons"
 
 # trigger A info
 name_a <- "readiness" # what name is the trigger listed as in the perf_metrics_table.csv files?
-type_a <- 'Predictive' # Predictive or Observational?
-monitored_area_a <- "National"
-timepoints_a<- 'Jan, Feb, Mar' # eg: 'Jan, Feb, Mar'
-package_a <- 'Package 1' # eg: 'Package 1'
-funding_a <- 5.25 # input number only, no $ sign or 'm' for million. Formatting will be done automatically.
-targeted_window_a <- 'Jul-Sep' # 3-letter names for first and last month. eg: 'Jul-Sep'. Forecasted period or period over which obs data are computed.
-lead_time_a <- '6-4 months' # 'eg: 7-5 months', Change units as needed. Include all lead times if multiple activation timepoints
-data_source_a <- 'IRI flexible seasonal forecast' # name of product + provider
-hist_period_a <- "1991 - 2020" # period for which historical data is available
-monitored_by_a <- 'IRI' # owner of monitoring responsibilities
-#
-# # trigger B info
-# name_b <- "Trigger2"
-# type_b <- 'Predictive'
-# monitored_area_b <- "National"
-# timepoints_b <- 'Apr, May, Jun'
-# package_b <- 'Package 2'
-# funding_b <- 9.5
-# targeted_window_b <- 'Jul-Sep'
-# lead_time_b <- '3-1 months'
-# data_source_b <- 'IRI flexible seasonal forecast'
-# hist_period_b <- "1991 - 2020"
-# monitored_by_b <- 'IRI'
-#
-# # trigger C info
-# name_c <- "Trigger3"
-# type_c <- 'Observational'
-# monitored_area_c <- "National"
-# timepoints_c <- 'Aug'
-# package_c <- 'Package 2'
-# funding_c <- 9.5
-# targeted_window_c <- 'Jun-Jul'
-# lead_time_c <- 'N/A'
-# data_source_c <- 'ENACTS or CHIRP'
-# hist_period_c <- "1991 - 2020"
-# monitored_by_c <- 'IRI'
-#
-# # activation timepoints for triggers with multiple timepoints ONLY
-# atv_timepoints <- c("Jan", "Feb", "Mar", "Apr", "May", "June")
-#
-# # Compile list of triggers to be included in the report
-# trigger_list <- c(name_a, name_b, name_c, atv_timepoints)
-# scenario_list <- c("framework-full", "framework-p1", "framework-p2") # exclude framework-none and framework-any
-#
+lead_time_a<- '3-5 days before landfall' # eg: 'Jan, Feb, Mar'
+data_source_a <- 'ECMWF, ...' # name of product + provider
+hist_period_a <- "2006 - 2021" # period for which historical data is available
+monitored_by_a <- 'OCHA Philippines' # owner of monitoring responsibilities
+
+# trigger B info
+name_b <- "activation"
+lead_time_b <- '72 hours before landfall'
+data_source_b <- 'ECMWF, 510 model'
+hist_period_b <- "2006 - 2021"
+monitored_by_b <- 'OCHA Philippines'
+
+# trigger C info
+name_c <- "framework"
+lead_time_c <- "N/A"
+data_source_c <- 'N/A'
+hist_period_c <- "N/A"
+monitored_by_c <- 'N/A'
+
 # Table footnotes
 trigger_table_footnote <- "Expected cost computed using most likely probability of activation (central value). Triggers 1 and 2 can reach their threshold and activate independently from one another. Trigger 3 can only be met if Trigger 2 was not met. See Annex for performance metrics per timepoint. Trigger performance assessed by comparing recommended activations with historical bad years (i.e., years with a shock). 'Bad years' were identified through convergence of evidence from data on cereal deficit, millet production, food insecurity, fodder needs, and farmer surveys."
 #
@@ -191,16 +164,6 @@ perf_metrics_data <- rbind(perf_metrics_95_data, perf_metrics_68_data) %>%
 
 #perf_metrics_data <- rbind(perf_metrics_data, framework_none_metrics)
 
-# format funding amounts
-funding_a_formatted <- paste0('$',funding_a,'m')
-#funding_b_formatted <- paste0('$',funding_b,'m')
-#funding_c_formatted <- paste0('$',funding_c,'m')
-
-# expected cost amounts (probability of activation multiplied by funding amount)
-expected_cost_a <- paste0('$', round(funding_a * (perf_metrics_data %>% filter(trigger == name_a & metric == "atv" & upoint == 'central_95') %>% select(value) %>% as.numeric()/100), 2), 'm')
-#expected_cost_b <- paste0('$', round(funding_b * (perf_metrics_data %>% filter(trigger == name_b & metric == "atv" & upoint == 'central_95') %>% select(value) %>% as.numeric()/100), 2), 'm')
-#expected_cost_c <- paste0('$', round(funding_c * (perf_metrics_data %>% filter(trigger == name_c & metric == "atv" & upoint == 'central_95') %>% select(value) %>% as.numeric()/100), 2), 'm')
-
 ```
 
 
@@ -208,7 +171,7 @@ expected_cost_a <- paste0('$', round(funding_a * (perf_metrics_data %>% filter(t
 
 # Create a CI visual for atv for each trigger, activation timepoint, and activation scenario beside None and Any
 
-trigger_list = c("readiness")
+trigger_list = c("readiness", "activation", "framework")
 
 for(trigger in trigger_list) {
 
@@ -342,106 +305,54 @@ explanatory_ci
 &nbsp;
 ```{r mechanism-snapshot, include = TRUE}
 
-snapshot_df <- data.frame(row_name = c('Type',
-                                       'Monitored Area',
-                                       'Activation Timepoints',
-                                       'Target Period',
+snapshot_df <- data.frame(row_name = c(
                                        'Lead Time',
                                        'Data Source',
                                        'Historical Data Coverage',
                                        'Monitored by',
-                                       'Activity Package',
                                        'Probability of being met in a given year',
-                                       'Funding Amount',
-                                       'Expected Cost',
                                        'All Activations (%)',
                                        'All Shocks (%)'),
-                       trigger_a = c(type_a,
-                                     monitored_area_a,
-                                     timepoints_a,
-                                     targeted_window_a,
+                       trigger_a = c(
                                      lead_time_a,
                                      data_source_a,
                                      hist_period_a,
                                      monitored_by_a,
-                                     package_a,
                                      "<img src=plots/trimmed_readiness_atv.png>",
-                                     funding_a_formatted,
-                                     expected_cost_a,
                                      "<img src=plots/trimmed_readiness_var_tradeoff_bar.png>",
                                      "<img src=plots/trimmed_readiness_det_tradeoff_bar.png>"),
-                      trigger_b = c(type_a,
-                                     monitored_area_a,
-                                     timepoints_a,
-                                     targeted_window_a,
-                                     lead_time_a,
-                                     data_source_a,
-                                     hist_period_a,
-                                     monitored_by_a,
-                                     package_a,
-                                     "<img src=plots/trimmed_readiness_atv.png>",
-                                     funding_a_formatted,
-                                     expected_cost_a,
-                                     "<img src=plots/trimmed_readiness_var_tradeoff_bar.png>",
-                                     "<img src=plots/trimmed_readiness_det_tradeoff_bar.png>"),
-                     trigger_c = c(type_a,
-                                     monitored_area_a,
-                                     timepoints_a,
-                                     targeted_window_a,
-                                     lead_time_a,
-                                     data_source_a,
-                                     hist_period_a,
-                                     monitored_by_a,
-                                     package_a,
-                                     "<img src=plots/trimmed_readiness_atv.png>",
-                                     funding_a_formatted,
-                                     expected_cost_a,
-                                     "<img src=plots/trimmed_readiness_var_tradeoff_bar.png>",
-                                     "<img src=plots/trimmed_readiness_det_tradeoff_bar.png>")
-                       # trigger_b = c(type_b,
-                       #               monitored_area_b,
-                       #               timepoints_b,
-                       #               targeted_window_b,
-                       #               lead_time_b,
-                       #               data_source_b,
-                       #               hist_period_b,
-                       #               monitored_by_b,
-                       #               package_b,
-                       #               "<img src=plots/trimmed_Trigger2_atv.png>",
-                       #               funding_b_formatted,
-                       #               expected_cost_b,
-                       #               "<img src=plots/trimmed_Trigger2_var_tradeoff_bar.png>",
-                       #               "<img src=plots/trimmed_Trigger2_det_tradeoff_bar.png>"),
-                       # trigger_c = c(type_c,
-                       #               monitored_area_c,
-                       #               timepoints_c,
-                       #               targeted_window_c,
-                       #               lead_time_c,
-                       #               data_source_c,
-                       #               hist_period_c,
-                       #               monitored_by_c,
-                       #               package_c,
-                       #              "<img src=plots/trimmed_Trigger3_atv.png>",
-                       #               funding_c_formatted,
-                       #               expected_cost_c,
-                       #               "<img src=plots/trimmed_Trigger3_var_tradeoff_bar.png>",
-                       #               "<img src=plots/trimmed_Trigger3_det_tradeoff_bar.png>")
+                      trigger_b = c(
+                                     lead_time_b,
+                                     data_source_b,
+                                     hist_period_b,
+                                     monitored_by_b,
+                                     "<img src=plots/trimmed_activation_atv.png>",
+                                     "<img src=plots/trimmed_activation_var_tradeoff_bar.png>",
+                                     "<img src=plots/trimmed_activation_det_tradeoff_bar.png>"),
+                     trigger_c = c(
+                                     lead_time_c,
+                                     data_source_c,
+                                     hist_period_c,
+                                     monitored_by_c,
+                                     "<img src=plots/trimmed_framework_atv.png>",
+                                     "<img src=plots/trimmed_framework_var_tradeoff_bar.png>",
+                                     "<img src=plots/trimmed_framework_det_tradeoff_bar.png>")
 )
 
 kbl(snapshot_df,
     format = 'html',
     escape = FALSE,
     row.names = FALSE, # omit row numbers
-    col.names = c("","Readiness", "Activation", "Both"),
+    col.names = c("","Readiness Trigger", "Activation Trigger", "Full Framework"),
     align = "rccc") %>%
   kable_minimal(c("hover", "striped")) %>%
-  row_spec(c(1:12), extra_css = "line-height: 30px;") %>%
-  row_spec(c(13:14), extra_css = "line-height: 85px;") %>%
+  row_spec(c(1:5), extra_css = "line-height: 30px;") %>%
+  row_spec(c(6:7), extra_css = "line-height: 85px;") %>%
   column_spec(column = 1, extra_css = "vertical-align: middle;") %>%
   column_spec(column = c(2:4), width = "28em") %>%
-  pack_rows("Description", start_row = 1, end_row = 8, color = '#1bb580') %>%
-  pack_rows("Programming and Funding", start_row = 9, end_row = 12, color = '#1bb580') %>%
-  pack_rows("Performance", start_row = 13, end_row = 14
+  pack_rows("Description", start_row = 1, end_row = 4, color = '#1bb580') %>%
+  pack_rows("Programming and Funding", start_row = 5, end_row = 5, color = '#1bb580') %>%
+  pack_rows("Performance", start_row = 6, end_row = 7
             , color = '#1bb580') %>%
   kableExtra::footnote(general_title = "Notes",
                        general = trigger_table_footnote)

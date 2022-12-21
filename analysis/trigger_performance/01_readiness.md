@@ -203,12 +203,20 @@ def calc_atv(TP, TN, FP, FN):
 ```
 
 ```python
+df_new = (
+    df.sample(n=len(df), replace=True, random_state=rng.bit_generator)
+    .apply(pd.value_counts)
+    .fillna(0)
+)
+for count in ["FN", "FP", "TN", "TP"]:
+    if count not in df_new.index:
+        df_new.loc[count] = 0
+df_new
+```
+
+```python
 def calc_df_base(df):
-    df_new = (
-        df.sample(n=len(df), replace=True, random_state=rng.bit_generator)
-        .apply(pd.value_counts)
-        .fillna(0)
-    )
+    df_new = df.apply(pd.value_counts).fillna(0)
     # Some realizations are missing certain counts
     for count in ["FN", "FP", "TN", "TP"]:
         if count not in df_new.index:
@@ -304,10 +312,6 @@ So we need to compute any metrics that are undefined due to
 missing FP by hand.
 
 ```python
-
-```
-
-```python
 CIs = [0.68, 0.95]
 
 
@@ -332,12 +336,12 @@ for CI in CIs:
                 replacement_metrics,
                 pd.DataFrame(
                     {
-                        "metric": ["det", "mis"],
+                        "metric": ["var", "far"],
                         "trigger": trigger,
                         "CI": CI,
                         "value": [
-                            calc_det(TP=nTP / n, FN=rate(CI, n)),
-                            1 - calc_mis(TP=nTP / n, FN=rate(CI, n)),
+                            calc_var(TP=nTP / n, FP=rate(CI, n)),
+                            1 - calc_far(TP=nTP / n, FP=rate(CI, n)),
                         ],
                     }
                 ),
@@ -368,7 +372,7 @@ def calc_ci(
             df_ci = df_ci.append(df, ignore_index=True)
         # Special case for trigger1 mis and det
         for trigger in trigger_names:
-            for metric, point in zip(("det", "mis"), ("low_end", "high_end")):
+            for metric, point in zip(("var", "far"), ("low_end", "high_end")):
                 df_ci.loc[
                     (df_ci.metric == metric)
                     & (df_ci.trigger == trigger)
@@ -389,4 +393,8 @@ def calc_ci(
 
 
 calc_ci(df_all_bootstrap, df_base, replace_fn_metrics=True)
+```
+
+```python
+
 ```
