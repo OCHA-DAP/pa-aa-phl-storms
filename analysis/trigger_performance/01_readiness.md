@@ -10,6 +10,7 @@ and gets the stats
 ```python
 from pathlib import Path
 import os
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -29,6 +30,7 @@ trigger_dir = (
 ```python
 trigger_filename = trigger_dir / "Readiness trigger performance.xlsx"
 df_readiness = pd.read_excel(trigger_filename)
+df_readiness
 ```
 
 ```python
@@ -85,7 +87,8 @@ df_readiness
 model_results_dir = trigger_dir / "model_run_results"
 results = pd.DataFrame()
 for filename in model_results_dir.glob("*CERF_TRIGGER_LEVEL.csv"):
-    typhoon = str(filename.name).split("_")[0]
+    year = str(filename.name).split("_")[1][:4]
+    results["year"] = year
     results = pd.concat([results, pd.read_csv(filename)], ignore_index=True)
 results
 ```
@@ -112,7 +115,9 @@ df_activation = pd.merge(
     how="left",
     on="typhoon",
 )
+```
 
+```python
 # count activations
 df_activation.loc[
     (df_activation["Should have activated"] == "Y")
@@ -137,9 +142,37 @@ df_activation.loc[
     ),
     "activation",
 ] = "TN"
-
-
 df_activation
+```
+
+```python
+# Final DF - compute performance of full framework
+df = df_activation.copy()
+
+df.loc[
+    (df["readiness"] == "TP") & (df["activation"] == "TP"),
+    "framework",
+] = "TP"
+
+df.loc[
+    (df["readiness"] == "TN") & (df["activation"] == "TN"),
+    "framework",
+] = "TN"
+
+df.loc[
+    ((df["readiness"] == "FN") | (df["activation"] == "FN"))
+    & (~df["activation"].isna()),
+    "framework",
+] = "FN"
+
+# Again, ignoring FPs
+df
+```
+
+```python
+# Drop unneeded columns for BSRS
+trigger_names = ["readiness", "activation", "framework"]
+df = df[trigger_names]
 ```
 
 ## Base metrics
@@ -209,10 +242,12 @@ df_base
 ## Bootstrap resample
 
 ```python
-n_bootstrap = 1_000  # 10,000 takes about ...
+n_bootstrap = 10_000  # 10,000 takes about 1 min
 
 # Copied from Niger
 def get_df_bootstrap(df, n_bootstrap=1_000):
+    # Lots of divide by 0 warnings, turn off
+    warnings.filterwarnings(action="ignore")
     # Create a bootstrapped DF
     df_all_bootstrap = pd.DataFrame()
     for i in range(n_bootstrap):
@@ -246,6 +281,7 @@ def get_df_bootstrap(df, n_bootstrap=1_000):
         df_all_bootstrap = pd.concat(
             [df_all_bootstrap, df_new], ignore_index=True
         )
+    warnings.filterwarnings(action="default")
     return df_all_bootstrap
 
 
@@ -255,9 +291,9 @@ df_all_bootstrap
 
 ## Confidence intervals
 
-Below we will use the rule of three since we don't have any FNs.
+Below we will use the rule of three since we don't have any FPs.
 
-Using the rule of three, we know our sample could have an FN rate of:
+Using the rule of three, we know our sample could have an FP rate of:
 
 $p = 1 - (1 - CI)^{1/n}$
 
@@ -265,21 +301,49 @@ where CI is the confidence interval (0.95 or 0.68) and $n$
 is the sample size.
 
 So we need to compute any metrics that are undefined due to
-missing FN by hand.
+missing FP by hand.
 
 ```python
+
+```
+
+```python
+CIs = [0.68, 0.95]
+
+
 def rate(CI, n):
     return 1 - (1 - CI) ** (1 / n)
 
 
-replacement_metrics = {"det": {}, "mis": {}}
+replacement_metrics = pd.DataFrame()
 
 n = len(df)
 nTP = df_base.loc[df_base["metric"] == "nTP", "value"].values[0]
 
-for CI in [0.68, 0.95]:
-    replacement_metrics["det"][CI] = calc_det(TP=nTP / n, FN=rate(CI, n))
-    replacement_metrics["mis"][CI] = calc_mis(TP=nTP / n, FN=rate(CI, n))
+for CI in CIs:
+    for trigger in trigger_names:
+        n = sum(~df[trigger].isna())
+        nTP = nTP = df_base.loc[
+            (df_base["metric"] == "nTP") & (df_base["trigger"] == trigger),
+            "value",
+        ].values[0]
+        replacement_metrics = pd.concat(
+            [
+                replacement_metrics,
+                pd.DataFrame(
+                    {
+                        "metric": ["det", "mis"],
+                        "trigger": trigger,
+                        "CI": CI,
+                        "value": [
+                            calc_det(TP=nTP / n, FN=rate(CI, n)),
+                            1 - calc_mis(TP=nTP / n, FN=rate(CI, n)),
+                        ],
+                    }
+                ),
+            ],
+            ignore_index=True,
+        )
 
 replacement_metrics
 ```
@@ -290,9 +354,9 @@ def calc_ci(
     df_bootstrap, df_base, replace_fn_metrics=None, save_filename_suffix=None
 ):
     df_grouped = df_bootstrap.groupby("metric")
-    for ci in [0.68, 0.95]:
+    for CI in CIs:
         df_ci = df_base.copy()
-        points = {"low_end": (1 - ci) / 2, "high_end": 1 - (1 - ci) / 2}
+        points = {"low_end": (1 - CI) / 2, "high_end": 1 - (1 - CI) / 2}
         for point, ci_val in points.items():
             df = (
                 df_grouped.quantile(ci_val)
@@ -303,22 +367,24 @@ def calc_ci(
             df["point"] = point
             df_ci = df_ci.append(df, ignore_index=True)
         # Special case for trigger1 mis and det
-        df_ci.loc[
-            (df_ci.metric == "det")
-            # & (df_ci.trigger.isin(["Trigger1", "framework-min"]))
-            & (df_ci.point == "low_end"),
-            "value",
-        ] = replacement_metrics["det"][ci]
-        df_ci.loc[
-            (df_ci.metric == "mis")
-            # & (df_ci.trigger.isin(["Trigger1", "framework-min"]))
-            & (df_ci.point == "high_end"),
-            "value",
-        ] = (
-            1 - replacement_metrics["mis"][ci]
-        )
+        for trigger in trigger_names:
+            for metric, point in zip(("det", "mis"), ("low_end", "high_end")):
+                df_ci.loc[
+                    (df_ci.metric == metric)
+                    & (df_ci.trigger == trigger)
+                    & (df_ci.point == point),
+                    "value",
+                ] = replacement_metrics.loc[
+                    (replacement_metrics.metric == metric)
+                    & (replacement_metrics.trigger == trigger)
+                    & (replacement_metrics.CI == CI),
+                    "value",
+                ].values[
+                    0
+                ]
+
         # Save file
-        output_filename = f"phl_perf_metrics_table_ci_{ci}.csv"
+        output_filename = f"phl_perf_metrics_table_ci_{CI}.csv"
         df_ci.to_csv(trigger_dir / output_filename, index=False)
 
 
