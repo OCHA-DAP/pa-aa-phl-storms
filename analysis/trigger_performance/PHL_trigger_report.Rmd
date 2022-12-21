@@ -48,8 +48,8 @@ shock <- "Typhoons"
 
 # trigger A info
 name_a <- "readiness" # what name is the trigger listed as in the perf_metrics_table.csv files?
-lead_time_a<- '3-5 days before landfall' # eg: 'Jan, Feb, Mar'
-data_source_a <- 'ECMWF, ...' # name of product + provider
+lead_time_a<- '4-7 days before landfall' # eg: 'Jan, Feb, Mar'
+data_source_a <- 'PAGASA, ECMWF, GEFS, Weather Nerds' # name of product + provider
 hist_period_a <- "2006 - 2021" # period for which historical data is available
 monitored_by_a <- 'OCHA Philippines' # owner of monitoring responsibilities
 
@@ -68,22 +68,30 @@ hist_period_c <- "N/A"
 monitored_by_c <- 'N/A'
 
 # Table footnotes
-trigger_table_footnote <- "Expected cost computed using most likely probability of activation (central value). Triggers 1 and 2 can reach their threshold and activate independently from one another. Trigger 3 can only be met if Trigger 2 was not met. See Annex for performance metrics per timepoint. Trigger performance assessed by comparing recommended activations with historical bad years (i.e., years with a shock). 'Bad years' were identified through convergence of evidence from data on cereal deficit, millet production, food insecurity, fodder needs, and farmer surveys."
-#
-# full_atv_definition <- "A full activation occurs when Triggers 1 and 2 are met, or when Triggers 1 and 3 are met, and both packages are disbursed."
-# package1_atv_definition <- "Package 1 is activated when Trigger 1 is met."
-# package2_atv_definition <- "Package 2 is activated when Trigger 2 or Trigger 3 is met."
-# activation_table_footnote <-  "" # additional notes, if needed
+trigger_table_footnote <- "The readiness and activation trigger can reach their threshold and activate independently from one another. The full framework activation is met if both the readiness and activation triggers are reachedt. The readiness trigger performance was assessed by comparing recommended activations with historical typhoon forecasts, and the activation trigger by running the 510 model on ECMWF hindcasts."
 #
 # # Data providers
-data_providers <- "The Département de la statistique du Niger, the Direction de la météorologie nationale du Niger, IRI Columbia University, the World Food Programme, and the Food and Agriculture Orgnization" # will be followed by "provide data and/or analytical support."
+data_providers <- "OCHA Philippines, 510 Global"
 #
 # # Analysis
 # analysis <- "Historical data and analysis are available through IRI's Maproom [tool](http://iridl.ldeo.columbia.edu/fbfmaproom2/niger). The triggers were developed by IRI in close collaboration with DMN, WFP Niger, and the Centre for Humanitarian Data with valuable input from participating agencies and OCHA."
 #
 # Monitoring process
-monitoring_process <- "Between January and June inclusively, the FIT team at IRI updates the forecast (Triggers 1 and 2) and the decision tool within Maproom by the 22nd of each month. Within 24 hours of the update, the IRI team notifies the AA team, the Niger Humanitarian Coordinator, and the Chief of CERF by email whether or not the trigger is met. By 7 August the Direction de la météorologie nationale du Niger will collate the rainfall measurements from the stations specified in the framework for the period 1 June - 31 July, and share them with the IRI FIT team. By 10 August the IRI FIT team will confirm the number of stations for which complete data is available; select ENACTS (80% or more available) or CHIRP (less than 80% available) accordingly; compute the SPI values and update Maproom. The IRI FIT team will then notify the AA team, the Niger Humanitarian Coordinator, and the Chief of CERF by email whether or not the trigger is met. In case of an activation, additional meteorological data will be shared by the DMN, the IRI FIT team, and/or Centre for Humanitarian Data to inform response targeting."
-
+monitoring_process <- "Between September and January, OCHA Philippines
+monitors typhoon forecasts from the Philippine Atmospheric, Geophysical
+and Astronomical Services Administration (PAGASA), the European Centre
+for Medium-Range Weather Forecasts (ECMWF), the Global Ensemble Forecast
+System (GEFS), and Weather Nerds (Private Initiative). If the typhoon
+is projected to impact areas in regions 5, 8 and 13 within 4-7 days, and exceed 178
+km/h 1-minute sustained wind speed, then the readiness trigger is reached, with
+either scenario 1 or 2 specified. 72 hours before landfall, the 510 damage
+assessment model is run. If any of the damage threshold numbers exceed
+those specified in the framework by the target probability
+(ranging from 50% probability that
+80,000 houses or more will be totally damaged, or 95% probability
+that 5,000 will be totally damaged), then the activation trigger is reached.
+Note that for a successful activation, both the readiness and activation
+trigger need to be reached."
 ```
 
 ```{r setup, include = FALSE, message = FALSE, warning = FALSE}
@@ -148,21 +156,6 @@ perf_metrics_68_data$upoint <- paste0(perf_metrics_68_data$point, "_68")
 perf_metrics_data <- rbind(perf_metrics_95_data, perf_metrics_68_data) %>%
                       select(-point) # remove non-unique point identifier
 
-# create & append framework-none metrics
-#framework_min_metrics <- perf_metrics_data %>%
-#                            filter(trigger == 'framework-min' & metric == 'atv') %>%
-#                            mutate(value = 100 - value)
-
-#framework_none_metrics <- data.frame(metric = 'atv', trigger = 'framework-none', value = NA, upoint = c('central_95', 'low_end_95', 'high_end_95', 'central_68', 'low_end_68', 'high_end_68'))
-
-#framework_none_metrics$value[framework_none_metrics$upoint == 'central_95'] <- framework_min_metrics$value[framework_min_metrics$upoint == 'central_95']
-#framework_none_metrics$value[framework_none_metrics$upoint == 'low_end_95'] <- framework_min_metrics$value[framework_min_metrics$upoint == 'high_end_95']
-#framework_none_metrics$value[framework_none_metrics$upoint == 'high_end_95'] <- framework_min_metrics$value[framework_min_metrics$upoint == 'low_end_95']
-#framework_none_metrics$value[framework_none_metrics$upoint == 'central_68'] <- framework_min_metrics$value[framework_min_metrics$upoint == 'central_68']
-#framework_none_metrics$value[framework_none_metrics$upoint == 'low_end_68'] <- framework_min_metrics$value[framework_min_metrics$upoint == 'high_end_68']
-#framework_none_metrics$value[framework_none_metrics$upoint == 'high_end_68'] <- framework_min_metrics$value[framework_min_metrics$upoint == 'low_end_68']
-
-#perf_metrics_data <- rbind(perf_metrics_data, framework_none_metrics)
 
 ```
 
@@ -205,17 +198,6 @@ for(trigger in c(trigger_list)) {
   }
 }
 
-# # Tradeoff CI for activation scenarios
-#
-#   output <- plotTradeoffCI(trigger_id = "framework-min",
-#                    left_metric_name = "atv")
-#
-#   # save plot as png
-#   filename <- paste0("framework-min_atv_tradeoff_bar.png")
-#   png(filename = paste0("plots/", filename), width = 500, height = 400, units = "px")
-#   print(output$p)
-#   invisible(dev.off())
-
 ```
 
 ```{r file-formatting-and-saving}
@@ -243,21 +225,19 @@ for (filename in plots_to_trim) {
 ```
 
 ```{r key-messages-metrics}
-any_atv_low_end_68 <- perf_metrics_data %>% filter(trigger == 'framework-min' & metric == 'atv') %>% filter(upoint == 'low_end_68') %>% select(value) %>% as.numeric()
+any_atv_low_end_68 <- perf_metrics_data %>% filter(trigger == 'framework' & metric == 'atv') %>% filter(upoint == 'low_end_68') %>% select(value) %>% as.numeric()
 
-any_atv_high_end_68 <- perf_metrics_data %>% filter(trigger == 'framework-min' & metric == 'atv') %>% filter(upoint == 'high_end_68') %>% select(value) %>% as.numeric()
+any_atv_high_end_68 <- perf_metrics_data %>% filter(trigger == 'framework' & metric == 'atv') %>% filter(upoint == 'high_end_68') %>% select(value) %>% as.numeric()
 
-#any_det_low_end_68 <- perf_metrics_data %>% filter(trigger == 'framework-min' & metric == 'det') %>% filter(upoint == 'low_end_68') %>% select(value) %>% as.numeric()
-any_det_low_end_68 <- 89 # manual overwrite using the rule of three
+any_det_low_end_68 <- perf_metrics_data %>% filter(trigger == 'framework' & metric == 'det') %>% filter(upoint == 'low_end_68') %>% select(value) %>% as.numeric()
 
-#any_det_high_end_68 <- perf_metrics_data %>% filter(trigger == 'framework-min' & metric == 'det') %>% filter(upoint == 'high_end_68') %>% select(value) %>% as.numeric()
-any_det_high_end_68 <- 100 # manual overwrite using the rule of three
+any_det_high_end_68 <- perf_metrics_data %>% filter(trigger == 'framework' & metric == 'det') %>% filter(upoint == 'high_end_68') %>% select(value) %>% as.numeric()
 
-any_far_low_end_68 <- perf_metrics_data %>% filter(trigger == 'framework-min' & metric == 'far') %>% filter(upoint == 'low_end_68') %>% select(value) %>% as.numeric()
+any_far_low_end_68 <- perf_metrics_data %>% filter(trigger == 'framework' & metric == 'far') %>% filter(upoint == 'low_end_68') %>% select(value) %>% as.numeric()
 
-any_far_high_end_68 <- perf_metrics_data %>% filter(trigger == 'framework-min' & metric == 'far') %>% filter(upoint == 'high_end_68') %>% select(value) %>% as.numeric()
+any_far_high_end_68 <- perf_metrics_data %>% filter(trigger == 'framework' & metric == 'far') %>% filter(upoint == 'high_end_68') %>% select(value) %>% as.numeric()
 
-mitigation_warranted <- ifelse(any_far_low_end_68 >= 40, "Mitigation is recommended to minimise the negative impact of a false alarm due to its moderate to high likelihood.", "")
+mitigation_warranted <- ifelse(any_far_low_end_68 >= 40, "Mitigation is recommended to minimise the negative impact of a missed activation due to its moderate to high likelihood.", "")
 
 ```
 
@@ -267,8 +247,7 @@ mitigation_warranted <- ifelse(any_far_low_end_68 >= 40, "Mitigation is recommen
 
 ## Key Messages
 
-* <span style="color: blue;">ACTIVATION</span> <p style="color:black;font-size:16px;text-align:left;"> There is a `r paste0(any_atv_low_end_68, ' - ', any_atv_high_end_68)`% chance that an activation will occur in a given year.</p>
-* <span style="color: blue;">SHOCK DETECTION</span> <p style="color:black;font-size:16px;text-align:left;"> At least some activities are expected to be implemented ahead of `r paste0(any_det_low_end_68, ' - ', any_det_high_end_68)`% of shocks.</p>
+* <span style="color: blue;">ACTIVATION</span> <p style="color:black;font-size:16px;text-align:left;"> There is a `r paste0(any_atv_low_end_68, ' - ', any_atv_high_end_68)`% chance that a full activation (both readiness and activation trigger) will occur in a given year.</p>
 * <span style="color: blue;">FALSE ALARMS</span> <p style="color:black;font-size:16px;text-align:left;"> The risk of activating in the absence of a severe shock stands at `r paste0(any_far_low_end_68, ' - ', any_far_high_end_68)`% of activations.</p>
 * <span style="color: blue;">NO REGRETS BIAS</span> <p style="color:black;font-size:16px;text-align:left;"> The mechanism is optimised to reduce the risk of failing to activate when there is a shock, at the cost of having false alarms. `r mitigation_warranted `</p>
 
@@ -361,53 +340,10 @@ kbl(snapshot_df,
 
 &nbsp;
 
-## Activation Scenarios
-<p style="color:black;font-size:16px;text-align:left;"> This section examines the likelihood of activation in a given year under various scenarios. The estimates are presented as confidence intervals to illustrate their inherent uncertainty. The graphs show how likely it is that a scenario will occur (<span style="color:  #007ce1;">darker inner band</span>, 68% of years) as well as the highest and lowest probability that a scenario is to occur (<span style="color:  `r alpha("#007ce1", 0.7)`;">full coloured band</span>, 95% of years).</p>
-
-&nbsp;
-
-```{r framework-activation-table}
-# activation_df <- data.frame(row_name = c(paste0('Yearly Disbursements', footnote_marker_number(1)),
-#                                         paste0('Full', footnote_marker_number(2)),
-#                                         paste0('Package 1 only', footnote_marker_number(3)),
-#                                         paste0('Package 2 only', footnote_marker_number(4))),
-#                            atv_stats = c("<img src=plots/trimmed_framework-min_atv_tradeoff_bar.png>",
-#                                          "<img src=plots/trimmed_framework-full_atv.png>",
-#                                          "<img src=plots/trimmed_framework-p1_atv.png>",
-#                                          "<img src=plots/trimmed_framework-p2_atv.png>"))
-#
-# kbl(activation_df,
-#     format = 'html',
-#     escape = FALSE,
-#     row.names = FALSE,
-#     col.names = c("",""),
-#     align = "rl") %>%
-#   kable_styling(full_width = FALSE) %>%
-#   kable_minimal(c("hover")) %>%
-#   row_spec(c(1:4), extra_css = "line-height: 45px;") %>%
-#   column_spec(column = 1, width = "20em", extra_css = "vertical-align: middle;") %>%
-#   column_spec(column = 2, width = "22em") %>%
-#   pack_rows("Activations", start_row = 1, end_row = 2, color = '#1bb580') %>%
-#   pack_rows("Disbursement Scenario Breakdown", 2, 4, color = 'black') %>%
-#   kableExtra::footnote(general_title = "Notes",
-#                        general = activation_table_footnote,
-#                        number = c("Any: At least one trigger is met. None: No trigger is met.",
-#                         full_atv_definition,
-#                         package1_atv_definition,
-#                         package2_atv_definition))
-#
-```
-
-&nbsp;
-
 ## Technical Team
 <p style="color:black;font-size:16px;text-align:left;"> `r data_providers` have provided data and/or analytical support.
 
 ## Monitoring Process
 <p style="color:black;font-size:16px;text-align:left;"> `r monitoring_process` </p>
-
-## Learning Opportunities
-<p style="color:black;font-size:16px;text-align:left;"> This table summarises the decisions, assumptions, and open questions that arose during trigger development. They are documented for transparency and to inform the learning agenda.</p>
-
 
 &nbsp;
