@@ -237,6 +237,11 @@ any_far_low_end_68 <- perf_metrics_data %>% filter(trigger == 'framework' & metr
 
 any_far_high_end_68 <- perf_metrics_data %>% filter(trigger == 'framework' & metric == 'far') %>% filter(upoint == 'high_end_68') %>% select(value) %>% as.numeric()
 
+any_mis_low_end_68 <- perf_metrics_data %>% filter(trigger == 'framework' & metric == 'mis') %>% filter(upoint == 'low_end_68') %>% select(value) %>% as.numeric()
+
+any_mis_high_end_68 <- perf_metrics_data %>% filter(trigger == 'framework' & metric == 'mis') %>% filter(upoint == 'high_end_68') %>% select(value) %>% as.numeric()
+
+
 mitigation_warranted <- ifelse(any_far_low_end_68 >= 40, "Mitigation is recommended to minimise the negative impact of a missed activation due to its moderate to high likelihood.", "")
 
 ```
@@ -248,6 +253,7 @@ mitigation_warranted <- ifelse(any_far_low_end_68 >= 40, "Mitigation is recommen
 ## Key Messages
 
 * <span style="color: blue;">ACTIVATION</span> <p style="color:black;font-size:16px;text-align:left;"> There is a `r paste0(any_atv_low_end_68, ' - ', any_atv_high_end_68)`% chance that a full activation (both readiness and activation trigger) will occur in a given year.</p>
+* <span style="color: blue;">MISSED ACTIVATIONS</span> <p style="color:black;font-size:16px;text-align:left;"> The risk of not activating in the presence of a severe shock stands at `r paste0(any_mis_low_end_68, ' - ', any_mis_high_end_68)`% of shocks.</p>
 * <span style="color: blue;">FALSE ALARMS</span> <p style="color:black;font-size:16px;text-align:left;"> The risk of activating in the absence of a severe shock stands at `r paste0(any_far_low_end_68, ' - ', any_far_high_end_68)`% of activations.</p>
 * <span style="color: blue;">NO REGRETS BIAS</span> <p style="color:black;font-size:16px;text-align:left;"> The mechanism is optimised to reduce the risk of failing to activate when there is a shock, at the cost of having false alarms. `r mitigation_warranted `</p>
 

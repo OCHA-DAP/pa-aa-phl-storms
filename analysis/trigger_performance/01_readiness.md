@@ -87,8 +87,8 @@ df_readiness
 model_results_dir = trigger_dir / "model_run_results"
 results = pd.DataFrame()
 for filename in model_results_dir.glob("*CERF_TRIGGER_LEVEL.csv"):
-    year = str(filename.name).split("_")[1][:4]
-    results["year"] = year
+    # year = str(filename.name).split("_")[1][:4]
+    # results["year"] = year
     results = pd.concat([results, pd.read_csv(filename)], ignore_index=True)
 results
 ```
@@ -115,6 +115,7 @@ df_activation = pd.merge(
     how="left",
     on="typhoon",
 )
+df_activation
 ```
 
 ```python
@@ -131,17 +132,24 @@ df_activation.loc[
     "activation",
 ] = "FN"
 
-# Here assuming that there are no false positives -- pretty safe assumption for now
-# (but I will go back and run on more historical typhoons)
+
 df_activation.loc[
     (df_activation["Should have activated"] == "N")
     & (
         (df_activation["Activation reached"] == False)
-        # Remove this after running on more
-        | (df_activation["Activation reached"].isna())
+        & (df_activation["readiness"] == "TN")
     ),
     "activation",
 ] = "TN"
+
+
+df_activation.loc[
+    (df_activation["Should have activated"] == "N")
+    & ((df_activation["Activation reached"] == True)),
+    "activation",
+] = "FP"
+
+
 df_activation
 ```
 
@@ -165,7 +173,12 @@ df.loc[
     "framework",
 ] = "FN"
 
-# Again, ignoring FPs
+# Only activation has FP
+df.loc[
+    df["activation"] == "FP",
+    "framework",
+] = "FP"
+
 df
 ```
 
@@ -250,45 +263,95 @@ df_base
 ## Bootstrap resample
 
 ```python
-n_bootstrap = 10_000  # 10,000 takes about 1 min
+trigger = "activation"
+df_new = (
+    df[[trigger]]
+    .dropna()
+    .sample(
+        n=sum(~df[trigger].isna()),
+        replace=True,
+        random_state=rng.bit_generator,
+    )
+    .apply(pd.value_counts)
+)
+df_new
 
-# Copied from Niger
+# Fill in counts missing in original dataset as 0
+for count in ["FN", "FP", "TN", "TP"]:
+    if count not in df_new.index:
+        df_new.loc[count] = 0
+
+df_new.apply(
+    lambda x: {
+        "far": calc_far(x.TP, x.FP),
+        "var": calc_var(x.TP, x.FP),
+        "det": calc_det(x.TP, x.FN),
+        "mis": calc_mis(x.TP, x.FN),
+        "acc": calc_acc(x.TP, x.TN, x.FP, x.FN),
+        "atv": calc_atv(x.TP, x.TN, x.FP, x.FN),
+        "nTP": x.TP.sum(),
+        "nFP": x.FP.sum(),
+        "nFN": x.FN.sum(),
+    },
+    result_type="expand",
+).melt(ignore_index=False, var_name="trigger").reset_index().rename(
+    columns={"index": "metric"}
+)
+```
+
+```python
+n_bootstrap = 10_000  # 10,000 takes about 4 mins
+
+# Adapted from Niger
 def get_df_bootstrap(df, n_bootstrap=1_000):
     # Lots of divide by 0 warnings, turn off
     warnings.filterwarnings(action="ignore")
     # Create a bootstrapped DF
     df_all_bootstrap = pd.DataFrame()
-    for i in range(n_bootstrap):
-        df_new = (
-            df.sample(n=len(df), replace=True, random_state=rng.bit_generator)
-            .apply(pd.value_counts)
-            .fillna(0)
-        )
-        # Some realizations are missing certain counts
-        for count in ["FN", "FP", "TN", "TP"]:
-            if count not in df_new.index:
-                df_new.loc[count] = 0
-        df_new = (
-            df_new.apply(
-                lambda x: {
-                    "far": calc_far(x.TP, x.FP),
-                    "var": calc_var(x.TP, x.FP),
-                    "det": calc_det(x.TP, x.FN),
-                    "mis": calc_mis(x.TP, x.FN),
-                    "acc": calc_acc(x.TP, x.TN, x.FP, x.FN),
-                    "atv": calc_atv(x.TP, x.TN, x.FP, x.FN),
-                    "nTP": x.TP.sum(),
-                    "nFP": x.FP.sum(),
-                    "nFN": x.FN.sum(),
-                },
-                result_type="expand",
+    for trigger in df.columns:
+        i = 0
+        while i < n_bootstrap:
+            df_new = (
+                df[[trigger]]
+                .dropna()
+                .sample(
+                    n=sum(~df[trigger].isna()),
+                    replace=True,
+                    random_state=rng.bit_generator,
+                )
+                .apply(pd.value_counts)
             )
-            .reset_index()
-            .rename(columns={"index": "metric"})
-        )
-        df_all_bootstrap = pd.concat(
-            [df_all_bootstrap, df_new], ignore_index=True
-        )
+            # If a particular metric is missing that was in the
+            # original sample, need to redraw
+            if set(df_new.index) != set(df[trigger].dropna().unique()):
+                continue
+            i += 1
+            # Fill in counts missing in original dataset as 0
+            for count in ["FN", "FP", "TN", "TP"]:
+                if count not in df_new.index:
+                    df_new.loc[count] = 0
+            df_new = (
+                df_new.apply(
+                    lambda x: {
+                        "far": calc_far(x.TP, x.FP),
+                        "var": calc_var(x.TP, x.FP),
+                        "det": calc_det(x.TP, x.FN),
+                        "mis": calc_mis(x.TP, x.FN),
+                        "acc": calc_acc(x.TP, x.TN, x.FP, x.FN),
+                        "atv": calc_atv(x.TP, x.TN, x.FP, x.FN),
+                        "nTP": x.TP.sum(),
+                        "nFP": x.FP.sum(),
+                        "nFN": x.FN.sum(),
+                    },
+                    result_type="expand",
+                )
+                .melt(ignore_index=False, var_name="trigger")
+                .reset_index()
+                .rename(columns={"index": "metric"})
+            )
+            df_all_bootstrap = pd.concat(
+                [df_all_bootstrap, df_new], ignore_index=True
+            )
     warnings.filterwarnings(action="default")
     return df_all_bootstrap
 
@@ -325,7 +388,8 @@ n = len(df)
 nTP = df_base.loc[df_base["metric"] == "nTP", "value"].values[0]
 
 for CI in CIs:
-    for trigger in trigger_names:
+    # for trigger in trigger_names:
+    for trigger in ["readiness"]:
         n = sum(~df[trigger].isna())
         nTP = nTP = df_base.loc[
             (df_base["metric"] == "nTP") & (df_base["trigger"] == trigger),
@@ -357,21 +421,17 @@ replacement_metrics
 def calc_ci(
     df_bootstrap, df_base, replace_fn_metrics=None, save_filename_suffix=None
 ):
-    df_grouped = df_bootstrap.groupby("metric")
+    df_grouped = df_bootstrap.groupby(["metric", "trigger"])
     for CI in CIs:
         df_ci = df_base.copy()
         points = {"low_end": (1 - CI) / 2, "high_end": 1 - (1 - CI) / 2}
         for point, ci_val in points.items():
-            df = (
-                df_grouped.quantile(ci_val)
-                .melt(ignore_index=False)
-                .reset_index()
-                .rename(columns={"variable": "trigger"})
-            )
+            df = df_grouped.quantile(ci_val).reset_index()
             df["point"] = point
             df_ci = df_ci.append(df, ignore_index=True)
         # Special case for trigger1 mis and det
-        for trigger in trigger_names:
+        # for trigger in trigger_names:
+        for trigger in ["readiness"]:
             for metric, point in zip(("var", "far"), ("low_end", "high_end")):
                 df_ci.loc[
                     (df_ci.metric == metric)
@@ -386,15 +446,10 @@ def calc_ci(
                 ].values[
                     0
                 ]
-
         # Save file
         output_filename = f"phl_perf_metrics_table_ci_{CI}.csv"
         df_ci.to_csv(trigger_dir / output_filename, index=False)
 
 
 calc_ci(df_all_bootstrap, df_base, replace_fn_metrics=True)
-```
-
-```python
-
 ```
