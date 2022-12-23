@@ -42,7 +42,7 @@ editor_options:
 
 ```{r hard-coded-values, echo = FALSE, message = FALSE, warning = FALSE}
 country_name <- "The Philippines"
-country_pcode3 <- "PHL"
+country_pcode3 <- "phl"
 shock <- "Typhoons"
 
 # trigger A info
@@ -67,15 +67,7 @@ hist_period_c <- "N/A"
 monitored_by_c <- 'N/A'
 
 # Table footnotes
-trigger_table_footnote <- "The readiness and activation trigger can reach
-their threshold and activate independently from one another. The full
-framework activation is met only if both the readiness and activation triggers
-are reached. (Unlike in other rapid-onset pilots, the readiness trigger MUST
-be met in order for the activation trigger to go forward. If only one of the
-two triggers is reached, no interventions will take place). The readiness
-trigger performance was assessed by comparing recommended activations
-with historical typhoon forecasts, and the activation trigger
-by running the 510 model on ECMWF hindcasts."
+trigger_table_footnote <- "The readiness and activation trigger can reach their threshold and activate independently from one another. The full framework activation is met only if both the readiness and activation triggers are reached. (Unlike in other rapid-onset pilots, the readiness trigger MUST be met in order for the activation trigger to go forward. If only one of the two triggers is reached, no interventions will take place). The readiness trigger performance was assessed by comparing recommended activations with historical typhoon forecasts, and the activation trigger by running the 510 model on ECMWF hindcasts."
 #
 # # Data providers
 data_providers <- "OCHA Philippines, 510 Global"
@@ -357,5 +349,24 @@ kbl(snapshot_df,
 
 ## Monitoring Process
 <p style="color:black;font-size:16px;text-align:left;"> `r monitoring_process` </p>
+
+&nbsp;
+
+## Learning Opportunities
+<p style="color:black;font-size:16px;text-align:left;"> This table summarises the decisions, assumptions, and open questions that arose during trigger development. They are documented for transparency and to inform the learning agenda.</p>
+
+&nbsp;
+
+```{r learning-table}
+learning_table <- read.csv(learning_table_filename)
+kbl(learning_table,
+    format = 'html',
+    escape = FALSE,
+    row.names = FALSE, # omit row numbers
+    col.names = c("Decision","Rationale", "Assumption", "Open Question"),
+    align = "llll") %>%
+  kable_minimal(c("hover", "striped")) %>%
+  column_spec(column = c(1:4), width = "28em")
+```
 
 &nbsp;
