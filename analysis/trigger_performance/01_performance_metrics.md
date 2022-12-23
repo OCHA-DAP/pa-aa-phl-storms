@@ -1,7 +1,8 @@
-# Readiness trigger performance
+# Trigger performance metrics
 
-Reads in the readiness analysis by Joseph, does some BSRS,
-and gets the stats
+This notebook uses the historical readiness analysis performed by
+OCHA Philippines, and runs of the 510 model on ECMWF hindcasts,
+to compute the performance statistics of the Philippines trigger.
 
 ```python
 %load_ext jupyter_black
@@ -59,7 +60,8 @@ df_readiness.loc[
     ),
     "Confusion matrix",
 ] = "TP"
-# Dataset has no FPs so skipping those
+# Dataset has no FPs so skipping those,
+# will be dealt with using rule of 3, below
 ```
 
 ```python
@@ -152,6 +154,13 @@ df_activation.loc[
 
 df_activation
 ```
+
+## Framework
+
+Here we define a framework activation as when both the readiness and
+activation triggers are reached. For rapid-onset triggers, this is unique
+to the Philippines, as the readiness trigger is required for the
+activation trigger activites to be implemented.
 
 ```python
 # Final DF - compute performance of full framework
@@ -263,43 +272,6 @@ df_base
 ## Bootstrap resample
 
 ```python
-trigger = "activation"
-df_new = (
-    df[[trigger]]
-    .dropna()
-    .sample(
-        n=sum(~df[trigger].isna()),
-        replace=True,
-        random_state=rng.bit_generator,
-    )
-    .apply(pd.value_counts)
-)
-df_new
-
-# Fill in counts missing in original dataset as 0
-for count in ["FN", "FP", "TN", "TP"]:
-    if count not in df_new.index:
-        df_new.loc[count] = 0
-
-df_new.apply(
-    lambda x: {
-        "far": calc_far(x.TP, x.FP),
-        "var": calc_var(x.TP, x.FP),
-        "det": calc_det(x.TP, x.FN),
-        "mis": calc_mis(x.TP, x.FN),
-        "acc": calc_acc(x.TP, x.TN, x.FP, x.FN),
-        "atv": calc_atv(x.TP, x.TN, x.FP, x.FN),
-        "nTP": x.TP.sum(),
-        "nFP": x.FP.sum(),
-        "nFN": x.FN.sum(),
-    },
-    result_type="expand",
-).melt(ignore_index=False, var_name="trigger").reset_index().rename(
-    columns={"index": "metric"}
-)
-```
-
-```python
 n_bootstrap = 10_000  # 10,000 takes about 4 mins
 
 # Adapted from Niger
@@ -321,6 +293,7 @@ def get_df_bootstrap(df, n_bootstrap=1_000):
                 )
                 .apply(pd.value_counts)
             )
+            # TODO: Remove this
             # If a particular metric is missing that was in the
             # original sample, need to redraw
             if set(df_new.index) != set(df[trigger].dropna().unique()):

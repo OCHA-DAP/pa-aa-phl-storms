@@ -42,7 +42,7 @@ editor_options:
 
 ```{r hard-coded-values, echo = FALSE, message = FALSE, warning = FALSE}
 country_name <- "The Philippines"
-country_pcode3 <- "phl"
+country_pcode3 <- "PHL"
 shock <- "Typhoons"
 
 # trigger A info
@@ -55,7 +55,7 @@ monitored_by_a <- 'OCHA Philippines' # owner of monitoring responsibilities
 # trigger B info
 name_b <- "activation"
 lead_time_b <- '72 hours before landfall'
-data_source_b <- 'ECMWF, 510 model'
+data_source_b <- 'ECMWF, NLRC 510 Global damage impact model'
 hist_period_b <- "2006 - 2021"
 monitored_by_b <- 'OCHA Philippines'
 
@@ -67,13 +67,18 @@ hist_period_c <- "N/A"
 monitored_by_c <- 'N/A'
 
 # Table footnotes
-trigger_table_footnote <- "The readiness and activation trigger can reach their threshold and activate independently from one another. The full framework activation is met if both the readiness and activation triggers are reachedt. The readiness trigger performance was assessed by comparing recommended activations with historical typhoon forecasts, and the activation trigger by running the 510 model on ECMWF hindcasts."
+trigger_table_footnote <- "The readiness and activation trigger can reach
+their threshold and activate independently from one another. The full
+framework activation is met only if both the readiness and activation triggers
+are reached. (Unlike in other rapid-onset pilots, the readiness trigger MUST
+be met in order for the activation trigger to go forward. If only one of the
+two triggers is reached, no interventions will take place). The readiness
+trigger performance was assessed by comparing recommended activations
+with historical typhoon forecasts, and the activation trigger
+by running the 510 model on ECMWF hindcasts."
 #
 # # Data providers
 data_providers <- "OCHA Philippines, 510 Global"
-#
-# # Analysis
-# analysis <- "Historical data and analysis are available through IRI's Maproom [tool](http://iridl.ldeo.columbia.edu/fbfmaproom2/niger). The triggers were developed by IRI in close collaboration with DMN, WFP Niger, and the Centre for Humanitarian Data with valuable input from participating agencies and OCHA."
 #
 # Monitoring process
 monitoring_process <- "Between September and January, OCHA Philippines
@@ -83,11 +88,13 @@ for Medium-Range Weather Forecasts (ECMWF), the Global Ensemble Forecast
 System (GEFS), and Weather Nerds (Private Initiative). If the typhoon
 is projected to impact areas in regions 5, 8 and 13 within 4-7 days, and exceed 178
 km/h 1-minute sustained wind speed, then the readiness trigger is reached, with
-either scenario 1 or 2 specified. 72 hours before landfall, the 510 damage
-assessment model is run. If any of the damage threshold numbers exceed
-those specified in the framework by the target probability
+either scenario 1 (Regions 5 and 8) or 2 (Regions 8 and 13) specified.
+For more information on the scenario definition, please refer to the trigger framework.
+72 hours before landfall, the 510 damage
+assessment model is run. If any of the damage numbers exceed
+the thresholds specified in the framework impact matrix by the target probability
 (ranging from 50% probability that
-80,000 houses or more will be totally damaged, or 95% probability
+80,000 houses or more will be totally damaged, to 95% probability
 that 5,000 will be totally damaged), then the activation trigger is reached.
 Note that for a successful activation, both the readiness and activation
 trigger need to be reached."
