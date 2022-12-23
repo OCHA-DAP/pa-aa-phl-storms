@@ -296,8 +296,8 @@ def get_df_bootstrap(df, n_bootstrap=1_000):
             # TODO: Remove this
             # If a particular metric is missing that was in the
             # original sample, need to redraw
-            if set(df_new.index) != set(df[trigger].dropna().unique()):
-                continue
+            #if set(df_new.index) != set(df[trigger].dropna().unique()):
+            #    continue
             i += 1
             # Fill in counts missing in original dataset as 0
             for count in ["FN", "FP", "TN", "TP"]:
