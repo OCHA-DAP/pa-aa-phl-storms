@@ -303,5 +303,5 @@ df_rp
 ```
 
 ```python
-df_rp.to_csv("rp_damage_per_region.csv", index=False)
+#df_rp.to_csv("rp_damage_per_region.csv", index=False)
 ```

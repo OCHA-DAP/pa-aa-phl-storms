@@ -13,10 +13,7 @@ import os
 
 import pandas as pd
 
-MAIN_DIR = (
-    Path(os.environ["AA_DATA_DIR"])
-    / "public/exploration/phl/"
-)
+MAIN_DIR = Path(os.environ["AA_DATA_DIR"]) / "public/exploration/phl/"
 INPUT_DIR = MAIN_DIR / "data_from_repo/data"
 OUTPUT_DIR = MAIN_DIR
 

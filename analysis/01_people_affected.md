@@ -20,9 +20,7 @@ import matplotlib as mpl
 from statsmodels.stats import diagnostic
 
 
-MAIN_DIR = (
-    Path(os.environ["AA_DATA_DIR"]) / "public/exploration/phl"
-)
+MAIN_DIR = Path(os.environ["AA_DATA_DIR"]) / "public/exploration/phl"
 INPUT_DIR = MAIN_DIR / "data_from_repo/data"
 OUTPUT_DIR = MAIN_DIR
 
@@ -277,4 +275,8 @@ is somewhat lower, about 10-20.
 ratio = df_combined["npeople"] / df_combined["nfam"]
 ratio = ratio[ratio < 100]
 plt.hist(ratio, bins=np.arange(0.0, 10.0, 0.1))
+```
+
+```python
+
 ```
