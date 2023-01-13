@@ -232,15 +232,7 @@ def calc_atv(TP, TN, FP, FN):
 ```
 
 ```python
-df_new = (
-    df.sample(n=len(df), replace=True, random_state=rng.bit_generator)
-    .apply(pd.value_counts)
-    .fillna(0)
-)
-for count in ["FN", "FP", "TN", "TP"]:
-    if count not in df_new.index:
-        df_new.loc[count] = 0
-df_new
+df.apply(pd.value_counts).fillna(0)
 ```
 
 ```python
