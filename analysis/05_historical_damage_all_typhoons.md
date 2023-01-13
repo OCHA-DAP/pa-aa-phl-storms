@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.14.4
+      jupytext_version: 1.11.1
   kernelspec:
     display_name: pa-aa-phl-storms
     language: python
@@ -29,6 +29,7 @@ from pathlib import Path
 import os
 
 import pandas as pd
+import geopandas as gpd
 ```
 
 ```python
@@ -87,6 +88,12 @@ df_regional_damage.to_csv("typhoon_regional_damage.csv")
 ```
 
 ```python
+df_regional_damage.groupby(["typhoon", "year"]).sum().to_csv(
+    "typhoon_regional_damage_total.csv"
+)
+```
+
+```python
 df_municipal_damage = (
     df.merge(df_mun, how="left", on="adm3_pcode")
     .dropna(subset="Scenario")
@@ -97,8 +104,4 @@ df_municipal_damage = (
 df_municipal_damage["Scenario"] = df_municipal_damage["Scenario"].astype(int)
 df_municipal_damage
 df_municipal_damage.to_csv("typhoon_scenario_damage.csv")
-```
-
-```python
-pd.concat(df_municipal_damage, df
 ```
