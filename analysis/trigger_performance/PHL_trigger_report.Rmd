@@ -67,7 +67,7 @@ hist_period_c <- "N/A"
 monitored_by_c <- 'N/A'
 
 # Table footnotes
-trigger_table_footnote <- "The readiness and activation trigger can reach their threshold and activate independently from one another. The full framework activation is met only if both the readiness and activation triggers are reached. (Unlike in other rapid-onset pilots, the readiness trigger MUST be met in order for the activation trigger to go forward. If only one of the two triggers is reached, no interventions will take place). The readiness trigger performance was assessed by comparing recommended activations with historical typhoon forecasts, and the activation trigger by running the 510 model on ECMWF hindcasts."
+trigger_table_footnote <- "The readiness and activation trigger can reach their threshold and activate independently from one another. The full framework activation is met only if both the readiness and activation triggers are reached. (Unlike in other rapid-onset pilots, the readiness trigger MUST be met in order for the activation trigger to go forward. If only one of the two triggers is reached, no interventions will take place). The readiness trigger performance was assessed by comparing recommended activations with historical typhoon forecasts, and the activation trigger by running the 510 model on ECMWF hindcasts. Recommended activations were defined as historical typhoons that caused more than 5,000 buildings to be severely damaged in regions 5, 8, and 13."
 #
 # # Data providers
 data_providers <- "OCHA Philippines, 510 Global"
@@ -251,7 +251,7 @@ mitigation_warranted <- ifelse(any_far_low_end_68 >= 40, "Mitigation is recommen
 ## Key Messages
 
 * <span style="color: blue;">ACTIVATION</span> <p style="color:black;font-size:16px;text-align:left;"> There is a `r paste0(any_atv_low_end_68, ' - ', any_atv_high_end_68)`% chance that a full activation (both readiness and activation trigger) will occur in a given year.</p>
-* <span style="color: blue;">MISSED ACTIVATIONS</span> <p style="color:black;font-size:16px;text-align:left;"> The risk of not activating in the presence of a severe shock stands at `r paste0(any_mis_low_end_68, ' - ', any_mis_high_end_68)`% of shocks.</p>
+* <span style="color: blue;">MISSED ACTIVATIONS</span> <p style="color:black;font-size:16px;text-align:left;"> The risk of not activating in the presence of a severe shock stands at `r paste0(any_mis_low_end_68, ' - ', any_mis_high_end_68)`% of shocks. Note that in every case of a missed activation, the typhoon experienced rapid intensification, or the forecast was still underestimating the severity at the leadtime used.</p>
 * <span style="color: blue;">FALSE ALARMS</span> <p style="color:black;font-size:16px;text-align:left;"> The risk of activating in the absence of a severe shock stands at `r paste0(any_far_low_end_68, ' - ', any_far_high_end_68)`% of activations.</p>
 * <span style="color: blue;">NO REGRETS BIAS</span> <p style="color:black;font-size:16px;text-align:left;"> The mechanism is optimised to reduce the risk of failing to activate when there is a shock, at the cost of having false alarms. `r mitigation_warranted `</p>
 
@@ -329,8 +329,8 @@ kbl(snapshot_df,
     col.names = c("","Readiness Trigger", "Activation Trigger", "Full Framework"),
     align = "rccc") %>%
   kable_minimal(c("hover", "striped")) %>%
-  row_spec(c(1:5), extra_css = "line-height: 30px;") %>%
-  row_spec(c(6:7), extra_css = "line-height: 85px;") %>%
+  row_spec(c(1:5), extra_css = "line-height: 20px;") %>%
+  row_spec(c(6:7), extra_css = "line-height: 30px;") %>%
   column_spec(column = 1, extra_css = "vertical-align: middle;") %>%
   column_spec(column = c(2:4), width = "28em") %>%
   pack_rows("Description", start_row = 1, end_row = 4, color = '#1bb580') %>%

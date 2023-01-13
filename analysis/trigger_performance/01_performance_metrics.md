@@ -39,7 +39,10 @@ df_readiness
 for cname in ["Activation scenario", "Readiness scenario"]:
     df_readiness[cname] = df_readiness[cname].fillna(0).astype(int).astype(str)
 # Make sure Y/N is capitalized
-for cname in ["Should have activated", "Readiness reached"]:
+for cname in [
+    "Should have activated",
+    "Readiness reached",
+]:
     df_readiness[cname] = df_readiness[cname].str.upper()
 ```
 
@@ -67,7 +70,12 @@ df_readiness.loc[
 ```python
 # Rename confusion matrix column
 df_readiness = df_readiness[
-    ["International name", "Year", "Confusion matrix", "Should have activated"]
+    [
+        "International name",
+        "Year",
+        "Confusion matrix",
+        "Should have activated",
+    ]
 ].rename(
     columns={
         "International name": "typhoon",
@@ -79,8 +87,7 @@ df_readiness = df_readiness[
 df_readiness["typhoon"] = (
     df_readiness["typhoon"].str.upper().str.strip().str.replace(" ", "-")
 )
-
-df_readiness
+df_readiness.sort_values(by=["readiness", "typhoon"])
 ```
 
 ## Activation trigger
@@ -272,7 +279,7 @@ df_base
 ## Bootstrap resample
 
 ```python
-n_bootstrap = 10_000  # 10,000 takes about 4 mins
+n_bootstrap = 1_000  # 10,000 takes about 4 mins
 
 # Adapted from Niger
 def get_df_bootstrap(df, n_bootstrap=1_000):
@@ -296,7 +303,7 @@ def get_df_bootstrap(df, n_bootstrap=1_000):
             # TODO: Remove this
             # If a particular metric is missing that was in the
             # original sample, need to redraw
-            #if set(df_new.index) != set(df[trigger].dropna().unique()):
+            # if set(df_new.index) != set(df[trigger].dropna().unique()):
             #    continue
             i += 1
             # Fill in counts missing in original dataset as 0
