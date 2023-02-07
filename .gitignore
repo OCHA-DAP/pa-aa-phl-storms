@@ -134,3 +134,13 @@ dmypy.json
 
 # PyCharm
 .idea/
+
+# Notebooks
+*.ipynb
+
+# R project
+.Rproj.user
+
+# Outputs for trigger reports
+*.png
+*.knit.md
