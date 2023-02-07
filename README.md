@@ -2,23 +2,6 @@
 
 [![Generic badge](https://img.shields.io/badge/STATUS-UNDER%20REVISION-%23CCCCCC)](https://shields.io/)
 
-## Background information
-
-Provide a basic overview of the context of anticipatory action in this country.
-Link to the GDrive Trigger Card document for greater context and details.
-
-## Overview of analysis
-
-What is the basic process of the analysis contained within this repository?
-
-## Data description
-
-- Where does the data come from? Are there any licensing or usage restrictions?
-- How can the data be accessed?
-- Why were these datasets selected?
-- Are there any limitations with these datasets that one should be aware
-    of when running the analysis and interpreting results?
-
 ## Directory structure
 
 The code in this repository is organized as follows:
@@ -26,8 +9,6 @@ The code in this repository is organized as follows:
 ```shell
 
 ├── analysis      # Main repository of analytical work for the AA pilot
-├── docs          # .Rmd files or other relevant documentation
-├── exploration   # Experimental work not intended to be replicated
 ├── src           # Code to run any relevant data acquisition/processing pipelines
 |
 ├── .gitignore
@@ -48,25 +29,7 @@ Next create a new virtual environment and install the requirements with:
 pip install -r requirements.txt
 ```
 
-Finally, install any code in `src` using the command:
-
-```shell
-pip install -e .
-```
-
-To run the pipeline that downloads and processes the data, execute:
-
-```shell
-python src/main.py
-```
-
-To see runtime options, execute:
-
-```shell
-python src/main.py -h
-```
-
-If you would like to instead receive the processed data from our team, please
+If you would like to instead receive the raw data from our team, please
 [contact us](mailto:centrehumdata@un.org).
 
 ## Development
