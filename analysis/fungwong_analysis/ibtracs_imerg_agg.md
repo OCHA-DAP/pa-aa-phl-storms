@@ -39,7 +39,7 @@ from src.constants import *
 ### CODAB
 
 ```python
-codab.download_codab_to_blob()
+# codab.download_codab_to_blob()
 ```
 
 ```python
@@ -108,6 +108,10 @@ gdf_tracks_recent["distance_m"].hist()
 
 ```python
 d_thresh = 230
+```
+
+```python
+adm0_3857_buffer230 = adm0_3857.buffer(d_thresh*1000)
 ```
 
 ```python
@@ -180,9 +184,12 @@ tqdm.pandas()
 ```
 
 ```python
-df_tracks_agg = df_tracks_agg.progress_apply(get_storm_rainfall_aggregations, axis=1)
+df_tracks_agg = df_tracks_agg.progress_apply(
+    get_storm_rainfall_aggregations, axis=1
+)
 ```
 
 ```python
-df_tracks_agg
+blob_name = f"{PROJECT_PREFIX}/processed/ibtracs_imerg_stats.parquet"
+stratus.upload_parquet_to_blob(df_tracks_agg, blob_name)
 ```

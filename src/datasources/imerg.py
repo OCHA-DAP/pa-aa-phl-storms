@@ -4,7 +4,10 @@ import xarray as xr
 from tqdm.auto import tqdm
 import numpy as np
 
-PROCESSED_RASTER_BLOB_NAME = "imerg/daily/late/v7/processed/imerg-daily-late-{date}.tif"
+PROCESSED_RASTER_BLOB_NAME = (
+    "imerg/daily/late/v7/processed/imerg-daily-late-{date}.tif"
+)
+
 
 def get_blob_name(date: pd.Timestamp):
     return PROCESSED_RASTER_BLOB_NAME.format(date=date.date())
