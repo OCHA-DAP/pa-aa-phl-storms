@@ -32,7 +32,20 @@ from tqdm.auto import tqdm
 from dask.diagnostics import ProgressBar
 
 from src.constants import *
+from src.datasources import codab, imerg
 ```
+
+## Load data
+
+### CODAB
+
+```python
+adm0 = codab.load_codab_from_blob()
+```
+
+## Historical stats
+
+Calculated in `ibtracs_imerg_agg.ipynb` then merged with EM-DAT in `emdat.ipynb`
 
 ```python
 blob_name = f"{PROJECT_PREFIX}/processed/ibtracs_imerg_emdat_stats.parquet"
@@ -44,6 +57,8 @@ df_stats["Total Affected"] = df_stats["Total Affected"].fillna(0)
 df_stats = df_stats[df_stats["season"] < 2025]
 ```
 
+## Check correlations
+
 ```python
 df_stats.corr(numeric_only=True)["Total Affected"].plot.bar()
 ```
@@ -51,6 +66,12 @@ df_stats.corr(numeric_only=True)["Total Affected"].plot.bar()
 ```python
 df_stats_with_impact = df_stats[df_stats["Total Affected"] > 0]
 ```
+
+```python
+df_stats_with_impact.corr(numeric_only=True)["Total Affected"].plot.bar()
+```
+
+Seems like `q80_roll2` is best for rainfall. We can just check that by running a regression with wind and swapping in the various rainfall columns to see which performs best.
 
 ```python
 target = "Total Affected"  # your single target column
@@ -79,6 +100,67 @@ for other in other_cols:
 results_df = pd.DataFrame(results).sort_values("r2", ascending=False)
 print(results_df)
 ```
+
+Yeah seems like `q80_roll2` is best but honestly none of these $R^{2}$ values are very good.
+
+
+## Load IMERG
+
+```python
+# get IMERG
+query = """
+SELECT *
+FROM public.imerg
+WHERE pcode = 'PH'
+"""
+with stratus.get_engine(stage="prod").connect() as con:
+    df_imerg = pd.read_sql(query, con)
+```
+
+Check to see the most recent dates we have.
+
+```python
+df_imerg.sort_values("valid_date").iloc[-10:]
+```
+
+### Get recent IMERG rasters
+
+```python
+imerg_dates = pd.date_range("2025-11-08", "2025-11-08")
+```
+
+```python
+da_imerg_raw = imerg.open_imerg_raster_dates(imerg_dates)
+```
+
+```python
+da_imerg = da_imerg_raw.rio.clip(adm0.geometry)
+```
+
+```python
+da_imerg_roll2 = da_imerg.rolling(date=2, min_periods=1).sum()
+```
+
+```python
+da_imerg_roll2_q = da_imerg_roll2.quantile(0.8, dim=["x", "y"])
+```
+
+## Get Fung-Wong current values
+
+```python
+fungwong_imerg = float(da_imerg_roll2_q.max())
+```
+
+```python
+fungwong_imerg
+```
+
+```python
+# from https://agora.ex.nii.ac.jp/digital-typhoon/summary/wnp/l/202526.html.en
+fungwong_wind = 85
+```
+
+## Plot
 
 ```python
 def plot_stats(
@@ -112,11 +194,52 @@ def plot_stats(
             (row[wind_col], row[rain_col]),
             ha="center",
             va="center",
-            fontsize=5,
+            fontsize=4,
             # color=cerf_color if row["cerf"] == True else "k",
             # zorder=10 if row["cerf"] else 9,
             alpha=0.8,
         )
+
+    ax.scatter(
+        [fungwong_wind],
+        [fungwong_imerg],
+        marker="x",
+        color=CHD_GREEN,
+        linewidths=3,
+        s=100,
+    )
+    ax.annotate(
+        f"Fung-Wong\nlandfall wind speed\nand rainfall up to {imerg_dates.max().date()}",
+        xy=(fungwong_wind, fungwong_imerg),  # point to highlight
+        xytext=(
+            90,
+            300,
+        ),  # position of the label
+        va="center",
+        ha="center",
+        color=CHD_GREEN,
+        fontweight="normal",
+        fontsize=8,
+        arrowprops=dict(
+            arrowstyle="-",  # simple line, no arrowhead
+            color=CHD_GREEN,  # same color as text
+            lw=0.5,  # fine line
+            alpha=0.8,
+        ),
+    )
+
+    legend_text = (
+        "    Size of bubble proportional to\n"
+        "    total number of people affected [EM-DAT]"
+    )
+    ax.annotate(
+        legend_text,
+        (0, 390),
+        va="top",
+        fontsize=6,
+        fontstyle="italic",
+        color="grey",
+    )
 
     ylabel = (
         "Two-day rainfall, 80th percentile over whole country (mm) [IMERG]"

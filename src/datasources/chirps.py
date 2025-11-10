@@ -21,4 +21,3 @@ def open_chirps_cog(
     """
     url = CHIRPS_COG_URL.format(valid_date=d, pitch=pitch)
     return rxr.open_rasterio(url, chunks=True)
-
