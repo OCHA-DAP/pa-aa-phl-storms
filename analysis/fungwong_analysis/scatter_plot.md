@@ -126,6 +126,8 @@ df_imerg.sort_values("valid_date").iloc[-10:]
 ### Get recent IMERG rasters
 
 ```python
+# grabbing for the most recent dates that seem to be from Fung-Wong
+# the max date can be updated once we get more rainfall data
 imerg_dates = pd.date_range("2025-11-08", "2025-11-08")
 ```
 
