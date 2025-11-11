@@ -3,4 +3,5 @@ PROJECT_PREFIX = "pa-aa-phl-storms"
 
 KNOTS_TO_KMH = 1.852
 
-CHD_GREEN = "#1bb580"
+CHD_GREEN = "#14805a"
+cerf_color = "crimson"
