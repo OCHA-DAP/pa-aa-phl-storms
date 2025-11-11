@@ -6,11 +6,11 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.1
+      jupytext_version: 1.17.1
   kernelspec:
-    display_name: pa-aa-phl-storms
+    display_name: .venv
     language: python
-    name: pa-aa-phl-storms
+    name: python3
 ---
 
 # IMERG aggregation
@@ -107,11 +107,11 @@ gdf_tracks_recent["distance_m"].hist()
 ```
 
 ```python
-d_thresh = 230
+d_thresh = 50
 ```
 
 ```python
-adm0_3857_buffer230 = adm0_3857.buffer(d_thresh*1000)
+adm0_3857_buffer230 = adm0_3857.buffer(d_thresh * 1000)
 ```
 
 ```python
@@ -190,6 +190,10 @@ df_tracks_agg = df_tracks_agg.progress_apply(
 ```
 
 ```python
-blob_name = f"{PROJECT_PREFIX}/processed/ibtracs_imerg_stats.parquet"
+df_tracks_agg
+```
+
+```python
+blob_name = f"{PROJECT_PREFIX}/processed/ibtracs_imerg_stats_50km.parquet"
 stratus.upload_parquet_to_blob(df_tracks_agg, blob_name)
 ```
