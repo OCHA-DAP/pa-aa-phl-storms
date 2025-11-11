@@ -6,11 +6,11 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.1
+      jupytext_version: 1.17.1
   kernelspec:
-    display_name: pa-aa-phl-storms
+    display_name: .venv
     language: python
-    name: pa-aa-phl-storms
+    name: python3
 ---
 
 # Scatter plot
@@ -48,8 +48,10 @@ adm0 = codab.load_codab_from_blob()
 Calculated in `ibtracs_imerg_agg.ipynb` then merged with EM-DAT in `emdat.ipynb`
 
 ```python
-blob_name = f"{PROJECT_PREFIX}/processed/ibtracs_imerg_emdat_stats.parquet"
-df_stats_raw = stratus.load_parquet_from_blob(blob_name)
+blob_name = (
+    f"{PROJECT_PREFIX}/processed/ibtracs_imerg_emdat_stats_50km.parquet"
+)
+df_stats = stratus.load_parquet_from_blob(blob_name)
 ```
 
 ```python
@@ -128,7 +130,7 @@ df_imerg.sort_values("valid_date").iloc[-10:]
 ```python
 # grabbing for the most recent dates that seem to be from Fung-Wong
 # the max date can be updated once we get more rainfall data
-imerg_dates = pd.date_range("2025-11-08", "2025-11-08")
+imerg_dates = pd.date_range("2025-11-08", "2025-11-09")
 ```
 
 ```python
@@ -159,10 +161,32 @@ fungwong_imerg
 
 ```python
 # from https://agora.ex.nii.ac.jp/digital-typhoon/summary/wnp/l/202526.html.en
-fungwong_wind = 85
+fungwong_wind = 100
 ```
 
 ## Plot
+
+```python
+df_stats_with_impact
+```
+
+```python
+df_stats_with_impact.loc[:, "cerf"] = (
+    df_stats_with_impact["storm_id"]
+    .str.lower()
+    .isin(
+        [
+            "durian_wp_2006",
+            "haiyan_wp_2013",
+            "koppu_wp_2015",
+            "goni_wp_2020",
+            "rai_wp_2021",
+            "trami_wp_2024",
+            "man-yi_wp_2024",
+        ]
+    )
+)
+```
 
 ```python
 def plot_stats(
@@ -170,7 +194,10 @@ def plot_stats(
     rain_col="q80_roll2",
     impact_col="Total Affected",
 ):
-    df_plot = df_stats_with_impact.copy()
+    # df_plot = df_stats_with_impact.copy()
+    df_plot = df_stats_with_impact[
+        df_stats_with_impact["valid_time_min"] >= "2010"
+    ]
     # cerf_color = "crimson"
     fig, ax = plt.subplots(figsize=(7, 7), dpi=200)
 
@@ -184,7 +211,7 @@ def plot_stats(
         df_plot[wind_col],
         df_plot[rain_col],
         s=bubble_sizes_scaled,
-        # c=df_stats["cerf"].apply(lambda x: cerf_color if x else "k"),
+        c=df_plot["cerf"].apply(lambda x: cerf_color if x else "k"),
         alpha=0.3,
         edgecolor="none",
         zorder=1,
@@ -197,8 +224,8 @@ def plot_stats(
             ha="center",
             va="center",
             fontsize=4,
-            # color=cerf_color if row["cerf"] == True else "k",
-            # zorder=10 if row["cerf"] else 9,
+            color=cerf_color if row["cerf"] == True else "k",
+            zorder=10 if row["cerf"] else 9,
             alpha=0.8,
         )
 
@@ -214,8 +241,8 @@ def plot_stats(
         f"Fung-Wong\nlandfall wind speed\nand rainfall up to {imerg_dates.max().date()}",
         xy=(fungwong_wind, fungwong_imerg),  # point to highlight
         xytext=(
-            90,
-            300,
+            80,
+            260,
         ),  # position of the label
         va="center",
         ha="center",
@@ -229,14 +256,14 @@ def plot_stats(
             alpha=0.8,
         ),
     )
-
     legend_text = (
         "    Size of bubble proportional to\n"
         "    total number of people affected [EM-DAT]"
+        "\n    Red indicates CERF allocation\n\n"
     )
     ax.annotate(
         legend_text,
-        (0, 390),
+        (0, 260),
         va="top",
         fontsize=6,
         fontstyle="italic",
@@ -250,13 +277,14 @@ def plot_stats(
     )
     ax.set_ylabel(ylabel)
     ax.set_xlabel(
-        "Max. wind speed while within 230 km of Philippines (knots) [IBTrACS]"
+        "Max. wind speed while within 50 km of Philippines (knots) [IBTrACS]"
     )
 
     ax.set_xlim(left=0, right=xmax)
-    ax.set_ylim(bottom=0, top=ymax)
+    ax.set_ylim(bottom=0, top=ymax + 10)
 
     ax.set_title("Philippines: historical rainfall and wind speed")
+    plt.suptitle("Seasons: 2010-2024", y=0.88, fontsize=8, color="gray")
 
     ax.spines.top.set_visible(False)
     ax.spines.right.set_visible(False)
@@ -265,8 +293,4 @@ def plot_stats(
 
 ```python
 plot_stats()
-```
-
-```python
-
 ```
