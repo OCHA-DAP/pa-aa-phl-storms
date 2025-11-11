@@ -6,11 +6,11 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.16.1
+      jupytext_version: 1.17.1
   kernelspec:
-    display_name: pa-aa-phl-storms
+    display_name: .venv
     language: python
-    name: pa-aa-phl-storms
+    name: python3
 ---
 
 # EM-DAT
@@ -285,7 +285,7 @@ df_emdat_combined[df_emdat_combined["sid"].isnull()]
 ```
 
 ```python
-blob_name = f"{PROJECT_PREFIX}/processed/ibtracs_imerg_stats.parquet"
+blob_name = f"{PROJECT_PREFIX}/processed/ibtracs_imerg_stats_50km.parquet"
 df_stats_raw = stratus.load_parquet_from_blob(blob_name)
 ```
 
@@ -307,6 +307,8 @@ df_stats = pd.concat(
 ```
 
 ```python
-blob_name = f"{PROJECT_PREFIX}/processed/ibtracs_imerg_emdat_stats.parquet"
+blob_name = (
+    f"{PROJECT_PREFIX}/processed/ibtracs_imerg_emdat_stats_50km.parquet"
+)
 stratus.upload_parquet_to_blob(df_stats, blob_name)
 ```
