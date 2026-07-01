@@ -136,7 +136,7 @@ dmypy.json
 .idea/
 
 # Notebooks
-*.ipynb
+#*.ipynb
 
 # R project
 .Rproj.user
