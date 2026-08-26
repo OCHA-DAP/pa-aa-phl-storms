@@ -30,7 +30,7 @@ Evaluates a historical wind exposure trigger for the Philippines AA Storms progr
 | Spatial scope | Footprints are **clipped to the target-region union** before any population count |
 | Population | WorldPop 2026 1km raster (`global_pop_2026_CN_1km_R2025A_UA_v1.tif`). Population is summed from **raster pixels inside the actual wind footprint** - not from full municipality totals |
 | Municipality count | Admin-3 municipalities whose boundary intersects the clipped wind footprint |
-| Total population in target regions | 42,324,903 |
+| Total population in target regions | 29,275,856 |
 | Storms assessed | 30 super typhoons with target-region exposure (64-kt footprint overlap), from 1,127 total WP storms |
 
 **Why 100 kt centre wind?**
@@ -100,11 +100,11 @@ Population inside the 64-kt footprint clipped independently to each region (rast
 | Koppu | 2015 | 142,692 | 66,512 | - | - |
 | Noul | 2015 | 354,757 | - | - | - |
 | Nock-ten | 2016 | - | - | 1,053,152 | - |
-| Mangkhut | 2018 | ~2,547,622 | - | - | - |
-| Goni | 2020 | ~3,501,347 | - | - | - |
-| Man-yi | 2024 | ~882,887 | - | - | - |
+| Mangkhut | 2018 | 2,547,622 | - | - | - |
+| Goni | 2020 | - | - | 3,501,347 | - |
+| Man-yi | 2024 | 59,581 | 210,178 | 614,967 | - |
 
-*Mangkhut, Goni, and Man-yi regional breakdown approximated from total; exact per-region split available in notebook output.*
+*Exact per-region splits, computed in the fraction-of-region cells below. Two earlier approximations are corrected here: Goni's 3.5M sits entirely in **Region V (Bicol)**, not Region II, and Man-yi's 882,887 splits across three regions rather than falling wholly in Region II.*
 
 ### Population exceedance by region (chart)
 
@@ -115,6 +115,73 @@ Key observations from the chart:
 - **Region VIII** is the only region with a 3M+ event (Haiyan 2013) but has few storms at lower thresholds
 - **Region V** activates almost exclusively for Nock-ten (2016) and Goni (2020) at higher thresholds
 - **Region III** rarely activates independently - it appears alongside Region II in Megi and Koppu
+
+---
+
+## Fraction-of-Region Exposure: the 50% Test
+
+Every sweep above is in **absolute** people, which lets a large region set the scale: 1M exposed is a quarter of Cagayan Valley but under a tenth of Central Luzon. This section asks the relative question instead:
+
+> which storms put **>= 50% of a region's own population** inside the 64-kt footprint?
+
+### Denominators
+
+The fraction needs a clean denominator, so each region's total is the WorldPop raster summed over the **region polygon itself**:
+
+| Region | Population |
+|--------|-----------|
+| Region II (Cagayan Valley) | 3,989,175 |
+| Region III (Central Luzon) | 13,853,805 |
+| Region V (Bicol Region) | 6,543,178 |
+| Region VIII (Eastern Visayas) | 4,889,698 |
+| **Total, four target regions** | **29,275,856** |
+
+> **Fixed 2026-08-25.** The methodology table above previously quoted 42,324,903 as the target-region population. That came from `admin3_target`, built with `.intersects(target_union)`, which also pulls in municipalities in NCR, CAR, Region I and Region IV-A that merely touch the target boundary: NCR alone contributed 5.1M, for an overcount of 13,049,047. Cell 6 now sums the four region polygons and reports **29,275,856**. No exposure number was affected (those are raster sums inside footprints, computed independently), but any statement of the form "X% of the target-region population" was.
+
+### Result: 5 storms cross 50%
+
+| Storm | Year | Region | Max wind (km/h) | Munis | Population exposed | Region total | Share |
+|-------|------|--------|-----------------|-------|--------------------|--------------|-------|
+| Megi | 2010 | II Cagayan Valley | 232 | 69 | 2,738,963 | 3,989,175 | **68.7%** |
+| Mangkhut | 2018 | II Cagayan Valley | 204 | 73 | 2,547,622 | 3,989,175 | **63.9%** |
+| Haiyan | 2013 | VIII E. Visayas | 232 | 87 | 3,062,238 | 4,889,698 | **62.6%** |
+| Zeb | 1998 | II Cagayan Valley | 204 | 53 | 2,140,650 | 3,989,175 | **53.7%** |
+| Goni | 2020 | V Bicol | 222 | 65 | 3,501,347 | 6,543,178 | **53.5%** |
+
+5 activations in 5 distinct seasons over 45 years: **RP 9.0 yr**.
+
+### Threshold sweep on the fraction
+
+| Threshold | Storms | Seasons | Return period (yrs) | Regions activating |
+|-----------|--------|---------|---------------------|--------------------|
+| >= 5% | 13 | 13 | 3.5 | 3 |
+| >= 10% | 8 | 8 | 5.6 | 3 |
+| >= 15% | 7 | 7 | 6.4 | 3 |
+| >= 20% | 6 | 6 | 7.5 | 3 |
+| >= 25% | 5 | 5 | 9.0 | 3 |
+| >= 30% | 5 | 5 | 9.0 | 3 |
+| >= 40% | 5 | 5 | 9.0 | 3 |
+| **>= 50%** | **5** | **5** | **9.0** | **3** |
+| >= 60% | 3 | 3 | 15.0 | 2 |
+| >= 70% | 0 | 0 | - | 0 |
+
+### Chart
+
+Left panel: every storm x region pair as a share of that region's population, coloured by region, with the 50% line marked. Right panel: return period against the fraction threshold, with the plateau band shaded. A second figure maps the five qualifying footprints, each panel centred on the region being tested.
+
+### Reading of the result
+
+- **The threshold is insensitive.** The 5th-ranked fraction is 53.5% (Goni) and the 6th is 23.5% (Nancy 1982). Any threshold from 24% to 53% selects the identical five storms at RP 9.0 yr. 50% is a safe place to sit inside a 30-point-wide plateau, so the choice of exactly 50% is not doing the work: the physical gap in the record is.
+
+- **50% is a rare-event threshold, not a readiness threshold.** RP 9.0 yr against the CMA readiness baseline of RP 3.1 yr means this fires roughly a third as often. As a trigger it would have activated 5 times in 45 years. If the aim is to match readiness at RP ~3 yr, the fraction threshold has to drop to about **5%** (13 seasons, RP 3.5 yr), which is a very different operational proposition.
+
+- **Region III can never trigger it.** Central Luzon's 13.9M denominator is so large that its best storm on record, Man-yi 2024, reaches **1.5%**. No storm in 45 years comes within a factor of thirty of 50% there. A fraction-based rule silently excludes Region III, and with it the largest population in the programme. This is the mirror image of the absolute sweep, where Region III's size gave it an advantage it never converted.
+
+- **Region V needs a Goni.** Bicol's only crossing is Goni at 53.5%, barely over the line. Nock-ten 2016, the second-worst Bicol event, reaches 16.1%.
+
+- **Region II is where the fraction rule bites.** Cagayan Valley has the smallest denominator (4.0M) and the most crossings: Megi, Mangkhut and Zeb, three of the five. A 50% rule is in practice a Region II rule with Haiyan and Goni attached.
+
+- **Both the absolute and the fraction test agree on the same five events**, with one difference: the >= 2.0M absolute threshold (RP 9.0 yr, 5 storms) selects Goni, Haiyan, Megi, Mangkhut and Zeb, which is the identical set. At RP 9 the two framings converge, so the fraction adds interpretability rather than a different answer at this severity. The framings diverge lower down: at RP ~3.5 yr, absolute >= 250k gives 13 storms weighted to Region II and III, while fraction >= 5% gives 13 storms with Region III still absent.
 
 ---
 
